@@ -1,0 +1,9 @@
+    my name is  abhinav krishna p
+    i am working as a software engineer
+    working for the last 1.5 years in the industry
+    started as a mern stack developer
+    deployed 3  shopify  apps and a chrome extension
+    participated and  qualified in  SERP api hackathon
+    now learning RAG , FINETUNING and prompt engineering
+    looking for a job in the field of ai and ml
+    now learnig LLM Models
