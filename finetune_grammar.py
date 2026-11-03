@@ -13,6 +13,7 @@ import os
 import random
 import sys
 import time
+from contextlib import nullcontext
 
 import torch
 import sentencepiece as spm
@@ -22,7 +23,8 @@ from model import Pico, find_tokenizer
 
 
 parser = argparse.ArgumentParser(description="Fine-tune Pico for grammar correction")
-parser.add_argument("--data", default="data/train.jsonl", help="jsonl file with input/output pairs")
+parser.add_argument("--data", nargs="+", default=["data/train.jsonl"],
+                    help="one or more jsonl files with input/output pairs")
 parser.add_argument("--base", default="pico.pt", help="pre-trained checkpoint to start from")
 parser.add_argument("--out", default="pico_grammar.pt", help="where to save the fine-tuned model")
 parser.add_argument("--resume", action="store_true", help="continue fine-tuning from --out")
@@ -38,7 +40,12 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows consoles d
 device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cpu":
     torch.set_num_threads(os.cpu_count())
-print("Device:", device)
+    amp_dtype = None
+else:
+    # bfloat16 on Ampere+, float16 + loss scaling on older GPUs (T4)
+    amp_dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
+autocast = torch.autocast(device_type="cuda", dtype=amp_dtype) if amp_dtype else nullcontext()
+print("Device:", device, "| precision:", amp_dtype or "float32")
 torch.manual_seed(1337)
 random.seed(1337)
 
@@ -62,8 +69,11 @@ log_interval = 10
 weight_decay = 0.1
 grad_clip = 1.0
 
-rows = [json.loads(line) for line in open(args.data, encoding="utf-8") if line.strip()]
-print(f"Loaded {len(rows):,} pairs from {args.data}")
+rows = []
+for path in args.data:
+    n = len(rows)
+    rows += [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
+    print(f"Loaded {len(rows) - n:,} pairs from {path}")
 
 
 # ----------------------------
@@ -159,6 +169,7 @@ optimizer = torch.optim.AdamW(
     [{"params": decay, "weight_decay": weight_decay}, {"params": no_decay, "weight_decay": 0.0}],
     lr=args.lr, betas=(0.9, 0.95),
 )
+scaler = torch.amp.GradScaler("cuda", enabled=(amp_dtype == torch.float16))
 start_step = 0
 best_val = float("inf")
 if args.resume:
@@ -180,7 +191,8 @@ def estimate_val_loss():
     model.eval()
     losses = []
     for i in range(0, len(val_examples), args.batch_size):
-        _, loss = model(*make_batch(val_examples[i:i + args.batch_size]))
+        with autocast:
+            _, loss = model(*make_batch(val_examples[i:i + args.batch_size]))
         losses.append(loss.item())
     model.train()
     return sum(losses) / len(losses)
@@ -190,7 +202,8 @@ def estimate_val_loss():
 def correct(prompt_ids):
     model.eval()
     idx = torch.tensor([prompt_ids], dtype=torch.long, device=device)
-    out = model.generate(idx, max_new_tokens=model.block_size - len(prompt_ids), temperature=0, stop_id=eos_id)
+    with autocast:
+        out = model.generate(idx, max_new_tokens=model.block_size - len(prompt_ids), temperature=0, stop_id=eos_id)
     model.train()
     return sp.decode(out[0, len(prompt_ids):].tolist())
 
@@ -217,11 +230,14 @@ for step in range(start_step, end_step):
                         "config": model_config, "step": step, "val_loss": val_loss, "tokenizer": TOKENIZER}, args.out)
 
     xb, yb = get_batch("train")
-    _, loss = model(xb, yb)
+    with autocast:
+        _, loss = model(xb, yb)
     optimizer.zero_grad(set_to_none=True)
-    loss.backward()
+    scaler.scale(loss).backward()
+    scaler.unscale_(optimizer)
     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-    optimizer.step()
+    scaler.step(optimizer)
+    scaler.update()
 
     done = step - start_step + 1
     if done % log_interval == 0:

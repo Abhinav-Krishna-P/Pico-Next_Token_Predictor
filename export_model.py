@@ -15,6 +15,6 @@ if len(sys.argv) != 3:
 src, dst = sys.argv[1], sys.argv[2]
 
 ckpt = torch.load(src, map_location="cpu")
-small = {k: ckpt[k] for k in ("model", "config", "step", "val_loss", "tokenizer") if k in ckpt}
+small = {k: ckpt[k] for k in ("model", "config", "step", "val_loss", "tokenizer", "finished") if k in ckpt}
 torch.save(small, dst)
 print(f"{src} ({os.path.getsize(src) / 1e6:.0f}MB) -> {dst} ({os.path.getsize(dst) / 1e6:.0f}MB)")
