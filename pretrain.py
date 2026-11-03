@@ -39,6 +39,8 @@ parser.add_argument("--eval-interval", type=int, default=250)
 parser.add_argument("--eval-iters", type=int, default=40)
 parser.add_argument("--save-minutes", type=float, default=10, help="also save a checkpoint every N minutes")
 parser.add_argument("--compile", action="store_true", help="torch.compile the model (faster on modern GPUs)")
+parser.add_argument("--time-limit-hours", type=float, default=None,
+                    help="save and stop after this long (e.g. before a Kaggle/Colab session ends); re-run to resume")
 args = parser.parse_args()
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -153,11 +155,12 @@ def sample(prompt, tokens=60):
     return sp.decode(out[0].tolist())
 
 
-def save_checkpoint(step, val_loss):
+def save_checkpoint(step, val_loss, finished=False):
     # write to a temp file first so a disconnect mid-save can't corrupt the checkpoint
     tmp = args.out + ".tmp"
     torch.save({"model": model.state_dict(), "optimizer": optimizer.state_dict(), "scaler": scaler.state_dict(),
-                "config": model_config, "step": step, "val_loss": val_loss, "tokenizer": tokenizer_path}, tmp)
+                "config": model_config, "step": step, "val_loss": val_loss, "tokenizer": tokenizer_path,
+                "finished": finished}, tmp)
     shutil.move(tmp, args.out)
 
 
@@ -208,4 +211,11 @@ for step in range(start_step, max_steps):
         save_checkpoint(step, last_val)
         last_save = time.time()
 
-print(f"Pre-training done, val loss {last_val:.4f}, saved to {args.out}")
+    if args.time_limit_hours is not None and time.time() - t0 > args.time_limit_hours * 3600:
+        save_checkpoint(step, last_val)
+        print(f"Time limit reached at step {step + 1}/{max_steps}, saved to {args.out}. "
+              f"Run again to continue.", flush=True)
+        break
+else:
+    save_checkpoint(max_steps - 1, last_val, finished=True)
+    print(f"Pre-training done, val loss {last_val:.4f}, saved to {args.out}")

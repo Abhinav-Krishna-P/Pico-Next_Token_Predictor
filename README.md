@@ -40,7 +40,9 @@ For real fluency, `pico_colab.ipynb` pre-trains a bigger Pico on a GPU:
 | Model | ~34M parameters, 8 layers / 8 heads, 512 embedding, 512-token context |
 | Training | 600M tokens, mixed precision, gradient accumulation, checkpoints every 10 min, auto-resume |
 
-Open the notebook in Colab (**File → Open notebook → GitHub**), pick a **T4 GPU** runtime and run the cells in order. Data and checkpoints are saved to Google Drive (`MyDrive/pico/`), so a disconnect only means re-running the cells. The scripts can also be run directly:
+**Kaggle (recommended for long runs):** import `pico_kaggle.ipynb` (**Create → New Notebook → File → Import Notebook**), enable **GPU T4 x2** and **Internet**, add your `train.jsonl` as an input dataset, then **Save Version → Save & Run All**. It runs in the background for up to 12 hours (30 GPU hours/week free), stops itself safely before the limit, and can continue from its own previous output. Download `pico_big_grammar_small.pt` (created by `export_model.py`, weights only) and `pico_big_grammar_tokenizer.model` from the Output tab to use the model on a laptop.
+
+**Colab:** open the notebook in Colab (**File → Open notebook → GitHub**), pick a **T4 GPU** runtime and run the cells in order. Data and checkpoints are saved to Google Drive (`MyDrive/pico/`), so a disconnect only means re-running the cells. The scripts can also be run directly:
 
 ```bash
 python prepare_data.py --out-dir data_big                  # download + tokenize (once)
@@ -67,7 +69,8 @@ python correct.py                           # interactive mode
 ## Files
 
 - `main.py` – small CPU pre-training: tokenizer, data, training, checkpointing and text generation
-- `prepare_data.py` / `pretrain.py` / `pico_colab.ipynb` – large GPU pre-training
+- `prepare_data.py` / `pretrain.py` / `pico_kaggle.ipynb` / `pico_colab.ipynb` – large GPU pre-training
+- `export_model.py` – strip the optimizer state from a checkpoint (~3x smaller file for inference)
 - `finetune_grammar.py` – grammar-correction fine-tuning
 - `correct.py` – run the grammar-correction model
 - `model.py` – the Pico GPT model
