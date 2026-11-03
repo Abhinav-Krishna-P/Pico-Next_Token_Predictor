@@ -253,7 +253,7 @@ def lowercase(ws):
 
 
 def drop_punct(ws):
-    if ws[-1][-1] in ".!?":
+    if len(ws[-1]) > 1 and ws[-1][-1] in ".!?":
         return ws[:-1] + [ws[-1][:-1]]
     return None
 
@@ -277,7 +277,8 @@ def corrupt(sentence):
     applied = 0
     for _ in range(12):
         new = random.choices(funcs, weights)[0](ws)
-        if new and new != ws:
+        new = [w for w in new or [] if w]
+        if len(new) >= 2 and new != ws:
             ws, applied = new, applied + 1
             if applied == n:
                 break
@@ -291,11 +292,12 @@ source = collect()
 print(f"{len(source):,} clean sentences")
 os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
 written = 0
-with open(args.out, "w", encoding="utf-8") as f:
+with open(args.out + ".tmp", "w", encoding="utf-8") as f:   # a crash never leaves a half-written file
     for s in source:
         bad = s if random.random() < args.clean_share else corrupt(s)
         if bad is None:
             continue
         f.write(json.dumps({"input": bad, "output": s}) + "\n")
         written += 1
+os.replace(args.out + ".tmp", args.out)
 print(f"Wrote {written:,} pairs to {args.out}")
