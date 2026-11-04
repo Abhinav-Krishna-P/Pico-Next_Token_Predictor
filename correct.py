@@ -21,8 +21,11 @@ args = parser.parse_args()
 PROMPT = "Incorrect: {} Correct:"
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows consoles default to cp1252
 
+if not os.path.exists(args.model) and os.path.exists(os.path.join("models", args.model)):
+    args.model = os.path.join("models", args.model)   # "--model pico_grammar.pt" also finds models/pico_grammar.pt
 if not os.path.exists(args.model):
-    sys.exit(f"{args.model} not found: train the grammar model first with  python -m training.finetune_grammar")
+    sys.exit(f"{args.model} not found (also looked in models/): train the grammar model first with  "
+             f"python -m training.finetune_grammar")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 ckpt = torch.load(args.model, map_location=device)
