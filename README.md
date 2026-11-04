@@ -30,6 +30,10 @@ Pico/
 │   ├── make_synthetic.py   #   synthetic grammar pairs with common learner mistakes
 │   ├── finetune_grammar.py #   grammar-correction fine-tuning
 │   └── export_model.py     #   strip the optimizer state -> ~3x smaller file for inference
+├── evaluation/
+│   ├── evaluate.py         #   test a grammar model and write a one-page HTML report
+│   └── reports/            #   report.html + report.json
+├── model  testing/         # 30 test sentences (qns.txt) + answer key (ans.txt)
 ├── notebooks/
 │   ├── pico_kaggle.ipynb   # large pre-training + fine-tuning on a free Kaggle GPU
 │   └── pico_colab.ipynb    # the same on Google Colab
@@ -66,6 +70,27 @@ python correct.py --model models/pico_grammar.pt "..."   # use the small laptop-
 The default model is `models/pico_big_grammar_small.pt` (~34M parameters, trained on Kaggle). Its tokenizer
 `pico_big_grammar_tokenizer.model` must be in the same folder. These files are too big for git: download
 them from the Kaggle notebook's **Output** tab into `models/`.
+
+## Evaluate the model
+
+```bash
+python -m evaluation.evaluate                                  # big model vs the small baseline
+python -m evaluation.evaluate --model models/pico_grammar.pt --baseline none
+```
+
+Runs every sentence in `model  testing/qns.txt` through the model, compares it with `ans.txt` and writes
+`evaluation/reports/report.html`: parameters, tokens, latency, loss / perplexity, exact match, word errors
+before vs after, and edit precision / recall / F0.5, with a per-sentence breakdown.
+
+Current results (30 sentences, laptop CPU):
+
+| | Large model (33.9M) | Small model (3.3M) |
+|---|---|---|
+| Sentences fixed exactly | **11/30** | 1/30 |
+| Word errors removed | **26%** | −31% (made it worse) |
+| Edit F0.5 | **0.57** | 0.10 |
+| Test loss on answer key | **0.49** | 1.34 |
+| Median latency (varies per run) | ~0.5–0.6 s | **~0.1 s** |
 
 ## Small model on a CPU
 

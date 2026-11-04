@@ -2,54 +2,35 @@
 #
 #   python correct.py "they was playing in park"                          # correct one sentence
 #   python correct.py                                                     # interactive: empty line to quit
-#   python correct.py --model pico_big_grammar.pt "she go to school"      # use another model
+#   python correct.py --model pico_grammar.pt "she go to school"          # use another model (looks in models/ too)
 
 import argparse
 import os
 import sys
 
 import torch
-import sentencepiece as spm
 
-from pico import Pico, find_tokenizer
+from pico.grammar import correct, load_grammar_model, resolve_model_path
 
 parser = argparse.ArgumentParser(description="Correct grammar with Pico")
 parser.add_argument("--model", default="models/pico_big_grammar_small.pt", help="fine-tuned checkpoint")
 parser.add_argument("sentence", nargs="*", help="sentence to correct (omit for interactive mode)")
 args = parser.parse_args()
-
-PROMPT = "Incorrect: {} Correct:"
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows consoles default to cp1252
 
-if not os.path.exists(args.model) and os.path.exists(os.path.join("models", args.model)):
-    args.model = os.path.join("models", args.model)   # "--model pico_grammar.pt" also finds models/pico_grammar.pt
+args.model = resolve_model_path(args.model)
 if not os.path.exists(args.model):
     sys.exit(f"{args.model} not found (also looked in models/): train the grammar model first with  "
              f"python -m training.finetune_grammar")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-ckpt = torch.load(args.model, map_location=device)
-sp = spm.SentencePieceProcessor(model_file=find_tokenizer(ckpt, args.model, "models/tokenizer_grammar.model"))
-model = Pico(**ckpt["config"]).to(device)
-model.load_state_dict(ckpt["model"])
-model.eval()
-
-
-def correct(sentence):
-    prompt = sp.encode(PROMPT.format(sentence.strip()), out_type=int)
-    max_new = model.block_size - len(prompt)
-    if max_new <= 0:
-        return "(sentence too long for the model's context)"
-    idx = torch.tensor([prompt], dtype=torch.long, device=device)
-    out = model.generate(idx, max_new_tokens=max_new, temperature=0, stop_id=sp.eos_id())
-    return sp.decode(out[0, len(prompt):].tolist())
-
+model, sp, _ = load_grammar_model(args.model, device)
 
 if args.sentence:
-    print(correct(" ".join(args.sentence)))
+    print(correct(model, sp, " ".join(args.sentence))[0])
 else:
     while True:
         sentence = input("Sentence: ")
         if not sentence.strip():
             break
-        print("Corrected:", correct(sentence))
+        print("Corrected:", correct(model, sp, sentence)[0])
