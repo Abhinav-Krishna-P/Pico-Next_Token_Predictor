@@ -1,0 +1,5 @@
+torch
+sentencepiece
+numpy
+protobuf     # finetune_grammar.py: adds new symbols to the tokenizer
+datasets     # only for the large GPU data (prepare_data.py, make_synthetic.py)

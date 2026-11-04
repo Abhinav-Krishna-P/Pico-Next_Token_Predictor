@@ -19,18 +19,18 @@ import torch
 import sentencepiece as spm
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2
 
-from model import Pico, find_tokenizer
+from pico import Pico, find_tokenizer
 
 
 parser = argparse.ArgumentParser(description="Fine-tune Pico for grammar correction")
 parser.add_argument("--data", nargs="+", default=["data/train.jsonl"],
                     help="one or more jsonl files with input/output pairs")
-parser.add_argument("--base", default="pico.pt", help="pre-trained checkpoint to start from")
-parser.add_argument("--out", default="pico_grammar.pt", help="where to save the fine-tuned model")
+parser.add_argument("--base", default="models/pico.pt", help="pre-trained checkpoint to start from")
+parser.add_argument("--out", default="models/pico_grammar.pt", help="where to save the fine-tuned model")
 parser.add_argument("--resume", action="store_true", help="continue fine-tuning from --out")
 parser.add_argument("--steps", type=int, default=3000, help="number of training steps")
 parser.add_argument("--batch-size", type=int, default=16)
-parser.add_argument("--tokenizer-out", default="tokenizer_grammar.model", help="where to save the fine-tuning tokenizer")
+parser.add_argument("--tokenizer-out", default="models/tokenizer_grammar.model", help="where to save the fine-tuning tokenizer")
 parser.add_argument("--block-size", type=int, default=None,
                     help="max tokens per example (default: the base model's context, at least 128)")
 parser.add_argument("--lr", type=float, default=3e-4)
@@ -55,8 +55,8 @@ if args.resume:
 else:
     ckpt = torch.load(args.base, map_location=device)
     print(f"Starting from pre-trained {args.base} (val loss {ckpt['val_loss']:.4f})")
-# pretrain.py stores its tokenizer path in the checkpoint; the original main.py model uses tokenizer.model
-BASE_TOKENIZER = find_tokenizer(ckpt, args.base, "tokenizer.model")
+# pretrain.py stores its tokenizer path in the checkpoint; the small train_small.py model uses models/tokenizer.model
+BASE_TOKENIZER = find_tokenizer(ckpt, args.base, "models/tokenizer.model")
 # when resuming, keep using the tokenizer the run was started with
 TOKENIZER = find_tokenizer(ckpt, args.out, args.tokenizer_out) if args.resume else args.tokenizer_out
 if args.block_size is None:

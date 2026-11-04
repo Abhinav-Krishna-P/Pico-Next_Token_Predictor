@@ -5,8 +5,8 @@
 #     "I ate an apple yesterday." -> "I eat a apple yesterday."
 # and saved as {"input": broken, "output": clean} lines, the same format as train.jsonl.
 #
-#   python make_synthetic.py --out data/synthetic.jsonl                                  # stream from Hugging Face
-#   python make_synthetic.py --out data/synthetic.jsonl --text-files data/stories.txt --pairs 20000   # local files
+#   python -m training.make_synthetic --out data/synthetic.jsonl                                  # stream from Hugging Face
+#   python -m training.make_synthetic --out data/synthetic.jsonl --text-files data/stories.txt --pairs 20000   # local files
 
 import argparse
 import json
@@ -23,7 +23,7 @@ parser.add_argument("--web-share", type=float, default=0.5, help="fraction of se
 parser.add_argument("--clean-share", type=float, default=0.1,
                     help="fraction of already-correct pairs (teaches the model to leave good sentences alone)")
 parser.add_argument("--text-files", nargs="*", help="use local text files instead of downloading")
-parser.add_argument("--words", default="words_alpha.txt", help="English word list (for -ed / -ing stems)")
+parser.add_argument("--words", default="data/words_alpha.txt", help="English word list (for -ed / -ing stems)")
 args = parser.parse_args()
 random.seed(1337)
 

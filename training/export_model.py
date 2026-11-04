@@ -3,7 +3,7 @@
 # Training checkpoints also store the optimizer state, which roughly triples their size
 # and is only needed to continue training. This keeps just the weights + config.
 #
-#   python export_model.py pico_big_grammar.pt pico_big_grammar_small.pt
+#   python -m training.export_model models/pico_big_grammar.pt models/pico_big_grammar_small.pt
 
 import os
 import sys
@@ -11,7 +11,7 @@ import sys
 import torch
 
 if len(sys.argv) != 3:
-    sys.exit("usage: python export_model.py <checkpoint.pt> <output.pt>")
+    sys.exit("usage: python -m training.export_model <checkpoint.pt> <output.pt>")
 src, dst = sys.argv[1], sys.argv[2]
 
 ckpt = torch.load(src, map_location="cpu")

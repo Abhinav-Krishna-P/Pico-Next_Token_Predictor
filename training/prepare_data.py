@@ -6,8 +6,8 @@
 # 3. Tokenizes everything into train.bin / val.bin (uint16 token ids, read with np.memmap
 #    so gigabytes of data never have to fit in RAM).
 #
-#   python prepare_data.py --out-dir data_big                 # full size (~800M tokens)
-#   python prepare_data.py --out-dir data_test --stories-docs 2000 --web-docs 500 --vocab-size 2000   # quick test
+#   python -m training.prepare_data                            # full size (~800M tokens) into data/big
+#   python -m training.prepare_data --out-dir data/test --stories-docs 2000 --web-docs 500 --vocab-size 2000   # quick test
 
 import argparse
 import json
@@ -19,7 +19,7 @@ import sentencepiece as spm
 from datasets import load_dataset
 
 parser = argparse.ArgumentParser(description="Download and tokenize Pico's pre-training data")
-parser.add_argument("--out-dir", default="data_big")
+parser.add_argument("--out-dir", default="data/big")
 parser.add_argument("--stories-docs", type=int, default=None, help="max TinyStories documents (default: all ~2.1M)")
 parser.add_argument("--web-docs", type=int, default=300_000, help="FineWeb-Edu documents (~1k tokens each)")
 parser.add_argument("--vocab-size", type=int, default=16384)
@@ -70,8 +70,8 @@ download("FineWeb-Edu", ("HuggingFaceFW/fineweb-edu", "sample-10BT"), args.web_d
 if not os.path.exists(tokenizer_prefix + ".model"):
     print("Training tokenizer...")
     inputs = list(raw_files.values())
-    if os.path.exists("words_alpha.txt"):
-        inputs.append("words_alpha.txt")   # extra coverage for rare English words
+    if os.path.exists("data/words_alpha.txt"):
+        inputs.append("data/words_alpha.txt")   # extra coverage for rare English words
     spm.SentencePieceTrainer.train(
         input=inputs,
         model_prefix=tokenizer_prefix,

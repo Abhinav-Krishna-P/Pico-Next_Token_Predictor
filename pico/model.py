@@ -1,4 +1,4 @@
-# model.py – the Pico GPT model, shared by main.py, finetune_grammar.py and correct.py
+# model.py – the Pico GPT model, shared by the training scripts and correct.py
 
 import os
 
@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from transformer_block import Block
+from .transformer_block import Block
 
 
 def find_tokenizer(ckpt, ckpt_path, default):

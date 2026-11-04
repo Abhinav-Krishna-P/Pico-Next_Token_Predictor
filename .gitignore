@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+
+# downloaded / generated data (data/corpus.txt and data/words_alpha.txt are tracked)
+data/stories.txt
+data/tokens.pt
+data/train.jsonl
+data/synthetic.jsonl
+data/big/
+data/test/
+
+# large models trained on Kaggle/Colab and local experiments (models/pico.pt + tokenizers are tracked)
+models/pico_big*
+models/pico_grammar.pt
+*.tmp

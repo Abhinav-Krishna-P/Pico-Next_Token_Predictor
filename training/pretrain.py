@@ -1,6 +1,6 @@
 # pretrain.py – large-scale pre-training of Pico on the data from prepare_data.py (made for a GPU / Colab)
 #
-#   python pretrain.py --data-dir data_big --out pico_big.pt
+#   python -m training.pretrain --data-dir data/big --out models/pico_big.pt
 #
 # Automatically resumes from --out if it exists (so a Colab disconnect only loses a few
 # minutes): just run the same command again. Use --fresh to start over.
@@ -17,11 +17,11 @@ import numpy as np
 import torch
 import sentencepiece as spm
 
-from model import Pico
+from pico import Pico
 
 parser = argparse.ArgumentParser(description="Pre-train Pico on a large dataset")
-parser.add_argument("--data-dir", default="data_big")
-parser.add_argument("--out", default="pico_big.pt")
+parser.add_argument("--data-dir", default="data/big")
+parser.add_argument("--out", default="models/pico_big.pt")
 parser.add_argument("--fresh", action="store_true", help="ignore an existing checkpoint and start from scratch")
 # model (~34M parameters with the defaults)
 parser.add_argument("--block-size", type=int, default=512)

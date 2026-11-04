@@ -9,12 +9,12 @@ import urllib.request
 import torch
 import sentencepiece as spm
 
-from model import Pico
+from pico import Pico
 
 
 parser = argparse.ArgumentParser(description="Train / run the Pico language model")
 parser.add_argument("--retrain", action="store_true", help="train the model from scratch even if pico.pt exists")
-parser.add_argument("--resume", action="store_true", help="continue training from pico.pt")
+parser.add_argument("--resume", action="store_true", help="continue training from models/pico.pt")
 parser.add_argument("--retrain-tokenizer", action="store_true", help="rebuild tokenizer.model from the data files")
 parser.add_argument("--steps", type=int, default=None, help="number of training steps (overrides default)")
 parser.add_argument("--prompt", type=str, default="Once upon a time", help="text to start generation from")
@@ -30,11 +30,11 @@ random.seed(1337)
 
 STORIES_FILE = "data/stories.txt"  # TinyStories: ~27k short stories of simple, grammatical English
 STORIES_URL = "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStoriesV2-GPT4-valid.txt"
-WORDS_FILE = "words_alpha.txt"      # ~370k real English words, one per line (tokenizer vocabulary only)
-CORPUS_FILE = "corpus.txt"          # your own sentences, mixed into the training data
-TOKENIZER_PREFIX = "tokenizer"
+WORDS_FILE = "data/words_alpha.txt"      # ~370k real English words, one per line (tokenizer vocabulary only)
+CORPUS_FILE = "data/corpus.txt"          # your own sentences, mixed into the training data
+TOKENIZER_PREFIX = "models/tokenizer"
 TOKENS_CACHE = "data/tokens.pt"
-CHECKPOINT = "pico.pt"
+CHECKPOINT = "models/pico.pt"
 
 # ----------------------------
 # Hyperparameters

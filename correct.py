@@ -11,10 +11,10 @@ import sys
 import torch
 import sentencepiece as spm
 
-from model import Pico, find_tokenizer
+from pico import Pico, find_tokenizer
 
 parser = argparse.ArgumentParser(description="Correct grammar with Pico")
-parser.add_argument("--model", default="pico_grammar.pt", help="fine-tuned checkpoint")
+parser.add_argument("--model", default="models/pico_big_grammar_small.pt", help="fine-tuned checkpoint")
 parser.add_argument("sentence", nargs="*", help="sentence to correct (omit for interactive mode)")
 args = parser.parse_args()
 
@@ -22,11 +22,11 @@ PROMPT = "Incorrect: {} Correct:"
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows consoles default to cp1252
 
 if not os.path.exists(args.model):
-    sys.exit(f"{args.model} not found: train the grammar model first with  python finetune_grammar.py")
+    sys.exit(f"{args.model} not found: train the grammar model first with  python -m training.finetune_grammar")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 ckpt = torch.load(args.model, map_location=device)
-sp = spm.SentencePieceProcessor(model_file=find_tokenizer(ckpt, args.model, "tokenizer_grammar.model"))
+sp = spm.SentencePieceProcessor(model_file=find_tokenizer(ckpt, args.model, "models/tokenizer_grammar.model"))
 model = Pico(**ckpt["config"]).to(device)
 model.load_state_dict(ckpt["model"])
 model.eval()
