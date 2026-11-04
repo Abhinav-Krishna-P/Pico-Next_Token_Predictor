@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" alt="Pico – next token predictor" width="440"></p>
+
 # Pico – Next Token Predictor
 
 Pico is a tiny GPT-style language model built from scratch in PyTorch, made for learning how LLMs work.
@@ -39,7 +41,7 @@ Pico/
 │   ├── pico.pt, tokenizer.model                                  # small pre-trained model
 │   ├── pico_grammar.pt, tokenizer_grammar.model                  # small grammar model
 │   └── pico_big_grammar_small.pt, pico_big_grammar_tokenizer.model  # large grammar model (from Kaggle)
-├── assets/
+├── assets/               # logo (logo.svg, logo_mark.svg/png) and overview image
 └── requirements.txt
 ```
 
