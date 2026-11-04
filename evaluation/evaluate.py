@@ -372,11 +372,10 @@ summary = (f"Pico fixed <b>{solved} of {n}</b> sentences completely and removed 
            f"<b>{fmt_m(m['params'])}</b> parameters. On <b>{m['prefers_correct']} of {n}</b> sentences it assigns the "
            f"answer key a higher probability than the original mistake.")
 
-LOGO = ('<svg viewBox="0 0 128 128" width="44" height="44" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" '
-        'x2="1" y2="1"><stop offset="0" stop-color="#4F46E5"/><stop offset="1" stop-color="#7C3AED"/></linearGradient></defs>'
-        '<rect width="128" height="128" rx="30" fill="url(#lg)"/><rect x="30" y="38" width="15" height="62" rx="7.5" fill="#fff"/>'
+LOGO = ('<svg viewBox="0 0 128 128" width="44" height="44" aria-hidden="true">'
+        '<rect width="128" height="128" rx="30" fill="#111"/><rect x="30" y="38" width="15" height="62" rx="7.5" fill="#fff"/>'
         '<circle cx="60" cy="58" r="18" fill="none" stroke="#fff" stroke-width="15"/>'
-        '<rect x="88" y="55" width="13" height="28" rx="3" fill="#FBBF24"/></svg>')
+        '<rect x="88" y="55" width="13" height="28" rx="3" fill="#fff" fill-opacity=".55"/></svg>')
 
 page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/logo.svg" alt="Pico – next token predictor" width="440"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/logo_dark.svg"><img src="assets/logo.svg" alt="Pico – next token predictor" width="440"></picture></p>
 
 # Pico – Next Token Predictor
 
@@ -45,7 +45,7 @@ Pico/
 │   ├── pico.pt, tokenizer.model                                  # small pre-trained model
 │   ├── pico_grammar.pt, tokenizer_grammar.model                  # small grammar model
 │   └── pico_big_grammar_small.pt, pico_big_grammar_tokenizer.model  # large grammar model (from Kaggle)
-├── assets/               # logo (logo.svg, logo_mark.svg/png) and overview image
+├── assets/               # logo (logo.svg, logo_dark.svg, logo_mark.svg/png), poster and overview image
 └── requirements.txt
 ```
 

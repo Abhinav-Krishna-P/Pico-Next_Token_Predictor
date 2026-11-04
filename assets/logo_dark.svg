@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="128" viewBox="0 0 440 128" role="img" aria-label="Pico – next token predictor">
+  <rect width="128" height="128" rx="30" fill="#ffffff"/>
+  <rect x="30" y="38" width="15" height="62" rx="7.5" fill="#111111"/>
+  <circle cx="60" cy="58" r="18" fill="none" stroke="#111111" stroke-width="15"/>
+  <rect x="88" y="55" width="13" height="28" rx="3" fill="#111111" fill-opacity="0.55"/>
+  <text x="152" y="80" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="68" font-weight="700" letter-spacing="-1" fill="#ffffff">pico</text>
+  <text x="155" y="108" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="600" letter-spacing="2.5" fill="#9a9a9a">NEXT TOKEN PREDICTOR</text>
+</svg>

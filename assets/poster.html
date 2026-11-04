@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Pico Poster</title>
+<style>
+  :root { --bg:#0b0b0c; --fg:#f4f4f2; --dim:#a3a3a0; --faint:#5c5c5a; --line:#262627; --card:#141415; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:1080px; height:1350px; background:var(--bg); }
+  body { color:var(--fg); font-family:"Segoe UI", "Helvetica Neue", Arial, sans-serif; position:relative; overflow:hidden; }
+  .poster { position:absolute; inset:0; padding:70px 76px 60px; display:flex; flex-direction:column; }
+  /* faint dot grid in the background */
+  body::before { content:""; position:absolute; inset:0; opacity:.5;
+    background-image:radial-gradient(circle, #1f1f20 1.2px, transparent 1.3px); background-size:28px 28px; }
+  .mono { font-family:Consolas, "Cascadia Mono", "SF Mono", monospace; }
+
+  header { display:flex; align-items:center; justify-content:space-between; }
+  .brand { display:flex; align-items:center; gap:22px; }
+  .brand h1 { font-size:76px; font-weight:800; letter-spacing:-3px; line-height:1; }
+  .brand .tag { font-size:15px; letter-spacing:4px; color:var(--dim); margin-top:8px; font-weight:600; }
+  .version { border:1.5px solid var(--fg); border-radius:999px; padding:9px 20px; font-size:18px; font-weight:600; letter-spacing:1px; }
+
+  .headline { margin-top:52px; font-size:44px; line-height:1.18; font-weight:300; letter-spacing:-.8px; max-width:900px; }
+  .headline b { font-weight:700; }
+
+  .demo { margin-top:36px; border:1px solid var(--line); background:var(--card); border-radius:18px; padding:24px 28px; font-size:25px; line-height:1.7; }
+  .demo .lbl { display:inline-block; width:68px; color:var(--faint); font-size:17px; letter-spacing:2px; }
+  .demo s { color:var(--dim); text-decoration-thickness:2px; }
+  .demo u { text-decoration-thickness:3px; text-underline-offset:6px; font-weight:700; }
+  .cursor { display:inline-block; width:13px; height:26px; background:var(--fg); opacity:.55; vertical-align:-4px; margin-left:6px; border-radius:2px; }
+
+  .stats { margin-top:36px; display:grid; grid-template-columns:repeat(4, 1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .stat { padding:26px 0 24px; }
+  .stat + .stat { border-left:1px solid var(--line); padding-left:26px; }
+  .stat .v { font-size:50px; font-weight:800; letter-spacing:-2px; line-height:1; }
+  .stat .v small { font-size:24px; font-weight:600; letter-spacing:0; margin-left:3px; color:var(--dim); }
+  .stat .k { margin-top:10px; font-size:16px; color:var(--dim); line-height:1.35; }
+
+  .cols { margin-top:38px; display:grid; grid-template-columns:1.25fr 1fr; gap:44px; flex:1; }
+  h2 { font-size:15px; letter-spacing:3.5px; color:var(--dim); font-weight:700; margin-bottom:20px; }
+  .bench .row { margin-bottom:22px; }
+  .bench .top { display:flex; justify-content:space-between; align-items:baseline; font-size:19px; margin-bottom:9px; }
+  .bench .top b { font-size:24px; }
+  .track { height:12px; background:#1c1c1d; border-radius:99px; overflow:hidden; position:relative; }
+  .fill { height:100%; background:var(--fg); border-radius:99px; }
+  .ghost { height:6px; background:#1c1c1d; border-radius:99px; margin-top:6px; overflow:hidden; }
+  .ghost .fill { background:var(--faint); }
+  .bench .was { font-size:14px; color:var(--faint); margin-top:5px; }
+
+  .spec { width:100%; border-collapse:collapse; font-size:19px; }
+  .spec td { padding:10px 0; border-bottom:1px solid var(--line); }
+  .spec td:last-child { text-align:right; font-weight:600; }
+  .spec td:first-child { color:var(--dim); }
+
+  footer { margin-top:auto; padding-top:26px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; font-size:17px; color:var(--dim); }
+  footer .chips span { border:1px solid var(--line); border-radius:999px; padding:7px 15px; margin-right:8px; color:var(--fg); font-size:15px; }
+</style></head>
+<body>
+<div class="poster">
+  <header>
+    <div class="brand">
+      <svg width="104" height="104" viewBox="0 0 128 128" aria-hidden="true">
+        <rect width="128" height="128" rx="30" fill="#f4f4f2"/>
+        <rect x="30" y="38" width="15" height="62" rx="7.5" fill="#0b0b0c"/>
+        <circle cx="60" cy="58" r="18" fill="none" stroke="#0b0b0c" stroke-width="15"/>
+        <rect x="88" y="55" width="13" height="28" rx="3" fill="#0b0b0c" fill-opacity="0.45"/>
+      </svg>
+      <div><h1>pico</h1><div class="tag">NEXT TOKEN PREDICTOR</div></div>
+    </div>
+    <div class="version">v0.2.0</div>
+  </header>
+
+  <p class="headline">A tiny language model <b>built from scratch</b> in PyTorch that <b>corrects English grammar</b>, and runs on a laptop CPU.</p>
+
+  <div class="demo mono">
+    <div><span class="lbl">IN</span>She <s>don't</s> like coffee.</div>
+    <div><span class="lbl">OUT</span>She <u>doesn't</u> like coffee.<span class="cursor"></span></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">33.9<small>M</small></div><div class="k">parameters</div></div>
+    <div class="stat"><div class="v">135<small>MB</small></div><div class="k">model weights<br>(fp32)</div></div>
+    <div class="stat"><div class="v">0.5<small>s</small></div><div class="k">per sentence<br>on a laptop CPU</div></div>
+    <div class="stat"><div class="v">776<small>M</small></div><div class="k">training tokens</div></div>
+  </div>
+
+  <div class="cols">
+    <section class="bench">
+      <h2>GRAMMAR BENCHMARK · 30 SENTENCES</h2>
+      <div class="row">
+        <div class="top"><span>Sentences fixed exactly</span><b>11 / 30</b></div>
+        <div class="track"><div class="fill" style="width:36.7%"></div></div>
+        <div class="ghost"><div class="fill" style="width:3.3%"></div></div>
+        <div class="was">v0.1 laptop model: 1 / 30</div>
+      </div>
+      <div class="row">
+        <div class="top"><span>Word errors removed</span><b>26%</b></div>
+        <div class="track"><div class="fill" style="width:26%"></div></div>
+        <div class="was">v0.1 laptop model: −31% (made sentences worse)</div>
+      </div>
+      <div class="row">
+        <div class="top"><span>Precision of its corrections</span><b>0.69</b></div>
+        <div class="track"><div class="fill" style="width:69%"></div></div>
+      </div>
+      <div class="row">
+        <div class="top"><span>Edit F0.5 score</span><b>0.57</b></div>
+        <div class="track"><div class="fill" style="width:57%"></div></div>
+        <div class="ghost"><div class="fill" style="width:10%"></div></div>
+        <div class="was">v0.1 laptop model: 0.10</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>MODEL</h2>
+      <table class="spec">
+        <tr><td>Architecture</td><td>GPT decoder</td></tr>
+        <tr><td>Layers × heads</td><td>8 × 8</td></tr>
+        <tr><td>Embedding size</td><td>512</td></tr>
+        <tr><td>Context length</td><td>512 tokens</td></tr>
+        <tr><td>Vocabulary</td><td>16,384 BPE</td></tr>
+        <tr><td>Compute / token</td><td>≈ 67 MFLOPs</td></tr>
+        <tr><td>Test loss</td><td>0.49</td></tr>
+      </table>
+    </section>
+  </div>
+
+  <footer>
+    <div class="chips"><span>TinyStories</span><span>FineWeb-Edu</span><span>485k grammar pairs</span><span>Kaggle 2× T4</span></div>
+    <div class="mono">github.com/Abhinav-Krishna-P</div>
+  </footer>
+</div>
+</body></html>
