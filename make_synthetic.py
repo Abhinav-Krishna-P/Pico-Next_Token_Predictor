@@ -13,6 +13,8 @@ import json
 import os
 import random
 import re
+import sys
+import traceback
 
 parser = argparse.ArgumentParser(description="Generate synthetic grammar-correction pairs")
 parser.add_argument("--out", default="data/synthetic.jsonl")
@@ -24,6 +26,17 @@ parser.add_argument("--text-files", nargs="*", help="use local text files instea
 parser.add_argument("--words", default="words_alpha.txt", help="English word list (for -ed / -ing stems)")
 args = parser.parse_args()
 random.seed(1337)
+
+
+# Streaming downloads leave background threads running that can stop Python from exiting
+# (the process then hangs forever, e.g. after an error). Always exit hard instead.
+def hard_exit(code):
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(code)
+
+
+sys.excepthook = lambda *exc: (traceback.print_exception(*exc), hard_exit(1))
 
 WORDS = set()
 if os.path.exists(args.words):
@@ -301,3 +314,4 @@ with open(args.out + ".tmp", "w", encoding="utf-8") as f:   # a crash never leav
         written += 1
 os.replace(args.out + ".tmp", args.out)
 print(f"Wrote {written:,} pairs to {args.out}")
+hard_exit(0)
