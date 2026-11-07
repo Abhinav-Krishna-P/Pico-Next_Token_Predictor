@@ -12,7 +12,7 @@
 # The full conversations (all rows, including explanations) are trained separately as Question -> Answer
 # by finetune_grammar.py, so no data is lost; this script only adds the extra correction pairs.
 #
-# Test sentences from "model  testing/" that also appear in the dataset are listed in
+# Test sentences from evaluation/test_set/ that also appear in the dataset are listed in
 # <out>_test_overlap.json, so evaluation/evaluate.py can report scores with and without them.
 # Use --exclude-test to leave those pairs out of training instead.
 #
@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(description="Extract grammar-correction pairs f
 parser.add_argument("--src", default="data/english-practical-grammar", help="cloned dataset repository")
 parser.add_argument("--out", default="data/grammar_book.jsonl")
 parser.add_argument("--variants", type=int, default=3, help="wrong versions per fill-in-the-blank exercise")
-parser.add_argument("--test", nargs="*", default=["model  testing/qns.txt", "model  testing/ans.txt"],
+parser.add_argument("--test", nargs="*", default=["evaluation/test_set/qns.txt", "evaluation/test_set/ans.txt"],
                     help="test-set files, checked for overlap with the dataset")
 parser.add_argument("--exclude-test", action="store_true", help="drop pairs that are near-copies of test sentences")
 args = parser.parse_args()

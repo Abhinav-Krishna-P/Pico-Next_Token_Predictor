@@ -1,4 +1,4 @@
-# finetune_grammar.py – fine-tune the pre-trained Pico (pico.pt) to correct grammar
+# finetune_grammar.py – fine-tune a pre-trained Pico (pretrain.py) to correct grammar and answer grammar questions
 #
 # Data: .jsonl files with one example per line, either
 #   {"input": "<wrong sentence>", "output": "<corrected sentence>"}  ->  Incorrect: <input> Correct: <output></s>
@@ -27,12 +27,12 @@ from pico.grammar import PROMPT, QA_PROMPT
 parser = argparse.ArgumentParser(description="Fine-tune Pico for grammar correction")
 parser.add_argument("--data", nargs="+", default=["data/train.jsonl"],
                     help="jsonl files with input/output pairs or chat messages; 'file*N' repeats a file N times")
-parser.add_argument("--base", default="models/pico.pt", help="pre-trained checkpoint to start from")
-parser.add_argument("--out", default="models/pico_grammar.pt", help="where to save the fine-tuned model")
+parser.add_argument("--base", default="models/pico_big.pt", help="pre-trained checkpoint to start from")
+parser.add_argument("--out", default="models/pico_big_grammar.pt", help="where to save the fine-tuned model")
 parser.add_argument("--resume", action="store_true", help="continue fine-tuning from --out")
 parser.add_argument("--steps", type=int, default=3000, help="number of training steps")
 parser.add_argument("--batch-size", type=int, default=16)
-parser.add_argument("--tokenizer-out", default="models/tokenizer_grammar.model", help="where to save the fine-tuning tokenizer")
+parser.add_argument("--tokenizer-out", default="models/pico_big_grammar_tokenizer.model", help="where to save the fine-tuning tokenizer")
 parser.add_argument("--block-size", type=int, default=None,
                     help="max tokens per example (default: the base model's context, at least 128)")
 parser.add_argument("--lr", type=float, default=3e-4)

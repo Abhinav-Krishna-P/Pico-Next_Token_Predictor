@@ -2,7 +2,7 @@
 #
 #   python correct.py "they was playing in park"                          # correct one sentence
 #   python correct.py                                                     # interactive: empty line to quit
-#   python correct.py --model pico_grammar.pt "she go to school"          # use another model (looks in models/ too)
+#   python correct.py --model my_model.pt "she go to school"             # use another model (looks in models/ too)
 
 import argparse
 import os

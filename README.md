@@ -3,39 +3,41 @@
 # Pico – Next Token Predictor
 
 Pico is a tiny GPT-style language model built from scratch in PyTorch, made for learning how LLMs work.
-It predicts the next token; repeat that and it writes text. Fine-tuned on grammar pairs, **Pico v0.2.0
-corrects English grammar** and runs on a laptop CPU:
+It predicts the next token; repeat that and it writes text. Fine-tuned on grammar data, **Pico v0.3.0
+corrects English grammar and answers grammar questions**, running on a laptop CPU:
 
 ```
-python correct.py "She don't like coffee."          ->  She doesn't like coffee.
-python correct.py "I didn't went to the market."    ->  I didn't go to the market.
-python correct.py "She has went to the office."     ->  She has gone to the office.
+python correct.py "She bought a new furnitures for her room."   ->  She bought a new furniture for her room.
+python correct.py "I look forward to meet you."                 ->  I look forward to meeting you.
+python correct.py "Despite of the rain, we went out."           ->  Despite the rain, we went out.
+python ask.py "What is a noun?"                                 ->  A noun is a naming word. It refers to a person, a place or a thing. …
 ```
 
-<p align="center"><img src="assets/poster.png" alt="Pico v0.2.0 poster" width="540"></p>
+<p align="center"><img src="assets/poster.png" alt="Pico v0.3.0 poster" width="540"></p>
 
-## Pico v0.2.0 at a glance
+## Pico v0.3.0 at a glance
 
 | | |
 |---|---|
-| Parameters | **33,858,560** (33.9M) – 8.7M embeddings (tied with the output) + 25.2M transformer |
-| Weights | **135 MB** (float32) |
-| Architecture | GPT decoder · 8 layers × 8 heads · 512 embedding · 512-token context · ≈ 67 MFLOPs per token |
+| Parameters | **34,120,704** (34.1M) – 8.9M embeddings (tied with the output) + 25.2M transformer |
+| Weights | **137 MB** (float32) |
+| Architecture | GPT decoder · 8 layers × 8 heads · 512 embedding · 1,024-token context · ≈ 67 MFLOPs per token |
 | Tokenizer | SentencePiece BPE, **16,384** tokens, byte fallback |
 | Pre-training | **776M tokens** (TinyStories + FineWeb-Edu), 600M trained · 4,577 steps · val loss 2.50 · Kaggle 2× T4, ~4 h |
-| Fine-tuning | 100k grammar pairs + 385k synthetic learner mistakes · 15,000 steps · val loss 0.74 |
-| Benchmark (30 sentences) | **11/30** fixed exactly · **26%** of word errors removed · precision **0.69** · F0.5 **0.57** · test loss **0.49** |
+| Fine-tuning | 100k grammar pairs + 388k synthetic learner mistakes + the [English Practical Grammar dataset](https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset) (4,233 conversations + 653 extracted pairs) · 20,000 steps · val loss 0.92 |
+| Benchmark (30 sentences) | **18/30** fixed exactly · **51%** of word errors removed · precision **0.76** · F0.5 **0.72** · test loss **0.28** |
 | Speed | ~0.5 s per sentence on a laptop CPU |
 
 ### Versions
 
-| | v0.1.0 | v0.2.0 |
-|---|---|---|
-| Parameters | 28,917 | **33.9M** (3.3M for the laptop-trained model) |
-| Vocabulary | 53 words | **16,384** BPE tokens |
-| Layers × heads | 2 × 2 | **8 × 8** |
-| Training data | 9 sentences (66 words) | **776M tokens** + 485k grammar pairs |
-| What it does | memorises its corpus | writes fluent stories and **corrects grammar** |
+| | v0.1.0 | v0.2.0 | v0.3.0 |
+|---|---|---|---|
+| Parameters | 28,917 | 33.9M | **34.1M** |
+| Vocabulary | 53 words | 16,384 BPE | 16,384 BPE |
+| Layers × heads | 2 × 2 | 8 × 8 | 8 × 8 |
+| Training data | 9 sentences | 776M tokens + 485k grammar pairs | + English Practical Grammar dataset |
+| Benchmark | – | 11/30 | **18/30** |
+| What it does | memorises its corpus | corrects grammar | corrects grammar + **answers grammar questions** |
 
 The v0.1.0 overview is kept in [assets/pico_overview.png](assets/pico_overview.png).
 
@@ -43,35 +45,34 @@ The v0.1.0 overview is kept in [assets/pico_overview.png](assets/pico_overview.p
 
 ```
 Pico/
-├── correct.py              # fix grammar with a trained model (start here)
-├── ask.py                  # ask a grammar question (after training with the grammar dataset)
-├── pico/                   # the model
-│   ├── model.py            #   Pico GPT: embeddings, transformer blocks, generation, resizing
-│   └── transformer_block.py#   causal self-attention, feed-forward, transformer block
-├── training/               # everything used to train models
-│   ├── train_small.py      #   small CPU pre-training on TinyStories (models/pico.pt)
-│   ├── prepare_data.py     #   download + tokenize the large GPU dataset (data/big/)
-│   ├── pretrain.py         #   large GPU pre-training (models/pico_big.pt)
-│   ├── make_synthetic.py   #   synthetic grammar pairs with common learner mistakes
-│   ├── extract_grammar_pairs.py # correction pairs from the English Practical Grammar dataset
-│   ├── finetune_grammar.py #   grammar-correction fine-tuning
-│   └── export_model.py     #   strip the optimizer state -> ~3x smaller file for inference
+├── correct.py                  # fix grammar (start here)
+├── ask.py                      # ask a grammar question
+├── pico/                       # the model
+│   ├── model.py                #   Pico GPT: embeddings, transformer blocks, generation, resizing
+│   ├── transformer_block.py    #   causal self-attention, feed-forward, transformer block
+│   └── grammar.py              #   load a model, correct sentences, answer questions
+├── models/                     # the trained model (not in git, see below)
+│   ├── pico_big_grammar_small.pt
+│   └── pico_big_grammar_tokenizer.model
 ├── evaluation/
-│   ├── evaluate.py         #   test a grammar model and write a one-page HTML report
-│   └── reports/            #   report.html + report.json
-├── model  testing/         # 30 test sentences (qns.txt) + answer key (ans.txt)
+│   ├── evaluate.py             #   benchmark a model and write a one-page HTML report
+│   ├── test_set/               #   30 test sentences (qns.txt) + answer key (ans.txt)
+│   └── reports/                #   report.html + report.json
+├── training/                   # everything used to train the model
+│   ├── prepare_data.py         #   download + tokenize the pre-training data (data/big/)
+│   ├── pretrain.py             #   pre-training on a GPU
+│   ├── make_synthetic.py       #   synthetic grammar pairs with common learner mistakes
+│   ├── extract_grammar_pairs.py#   correction pairs from the English Practical Grammar dataset
+│   ├── finetune_grammar.py     #   grammar fine-tuning (correction pairs + Question/Answer conversations)
+│   ├── export_model.py         #   strip the optimizer state -> ~3x smaller file for inference
+│   └── train_small.py          #   small CPU-only model (for learning, v0.1-style)
 ├── notebooks/
-│   ├── pico_kaggle.ipynb   # large pre-training + fine-tuning on a free Kaggle GPU
-│   └── pico_colab.ipynb    # the same on Google Colab
+│   └── pico_kaggle.ipynb       # the full training run on a free Kaggle GPU
 ├── data/
-│   ├── corpus.txt          # your own sentences
-│   ├── words_alpha.txt     # ~370k English words (tokenizer vocabulary)
-│   └── ...                 # downloaded / generated data (stories.txt, train.jsonl, big/), not in git
-├── models/                 # checkpoints + tokenizers
-│   ├── pico.pt, tokenizer.model                                  # small pre-trained model
-│   ├── pico_grammar.pt, tokenizer_grammar.model                  # small grammar model
-│   └── pico_big_grammar_small.pt, pico_big_grammar_tokenizer.model  # large grammar model (from Kaggle)
-├── assets/               # logo (logo.svg, logo_dark.svg, logo_mark.svg/png), v0.2.0 poster, v0.1.0 overview
+│   ├── train.jsonl             # 100k grammar pairs (not in git)
+│   ├── grammar_book.jsonl      # pairs extracted from the grammar dataset (not in git)
+│   ├── corpus.txt, words_alpha.txt   # used by train_small.py / the tokenizer
+├── assets/                     # logo, poster, v0.1.0 overview
 └── requirements.txt
 ```
 
@@ -85,119 +86,80 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Correct grammar
+The model files are too big for git: download `pico_big_grammar_small.pt` and `pico_big_grammar_tokenizer.model`
+from the Kaggle notebook's **Output** tab into `models/`.
+
+## Use
 
 ```bash
 python correct.py "they was playing in park"     # correct one sentence
 python correct.py                                # interactive mode (empty line to quit)
-python correct.py --model models/pico_grammar.pt "..."   # use the small laptop-trained model
+python ask.py "What is a noun?"                  # grammar question (experimental, see below)
+python ask.py                                    # interactive mode
 ```
 
-The default model is `models/pico_big_grammar_small.pt` (33.9M parameters, trained on Kaggle). Its tokenizer
-`pico_big_grammar_tokenizer.model` must be in the same folder. These files are too big for git: download
-them from the Kaggle notebook's **Output** tab into `models/`.
+`ask.py` is **experimental**: answers are good for questions close to the English Practical Grammar dataset
+(*What is a noun?*), but for other questions a 34M-parameter model often repeats itself or makes things up.
+Sentence correction (`correct.py`) is the reliable feature.
 
-## Evaluate the model
+## Evaluate
 
 ```bash
-python -m evaluation.evaluate                                  # big model vs the small baseline
-python -m evaluation.evaluate --model models/pico_grammar.pt --baseline none
+python -m evaluation.evaluate                                    # writes evaluation/reports/report.html
+python -m evaluation.evaluate --baseline models/other_model.pt   # compare two models
 ```
 
-Runs every sentence in `model  testing/qns.txt` through the model, compares it with `ans.txt` and writes
-`evaluation/reports/report.html`: parameters, tokens, latency, loss / perplexity, exact match, word errors
-before vs after, and edit precision / recall / F0.5, with a per-sentence breakdown.
+Runs every sentence in `evaluation/test_set/qns.txt` through the model, compares it with `ans.txt` and reports
+parameters, tokens, latency, loss / perplexity, exact match, word errors before vs after and edit precision /
+recall / F0.5, with a per-sentence breakdown.
 
-Current results (30 sentences, laptop CPU):
-
-| | Large model (33.9M) | Small model (3.3M) |
+| | v0.3.0 | v0.2.0 |
 |---|---|---|
-| Sentences fixed exactly | **11/30** | 1/30 |
-| Word errors removed | **26%** | −31% (made it worse) |
-| Edit F0.5 | **0.57** | 0.10 |
-| Test loss on answer key | **0.49** | 1.34 |
-| Median latency (varies per run) | ~0.5–0.6 s | **~0.1 s** |
+| Sentences fixed exactly | **18/30** | 11/30 |
+| Fixed, on the 19 sentences **not** in the training data | **9/19** | 8/19 |
+| Word errors removed | **51%** | 26% |
+| Edit precision / F0.5 | **0.76 / 0.72** | 0.69 / 0.57 |
+| Test loss on the answer key | **0.28** | 0.49 |
+| Median latency (laptop CPU) | ~0.5 s | ~0.5 s |
 
-## Small model on a CPU
+11 of the 30 test sentences (or close variants) also appear in the English Practical Grammar dataset. They are
+marked in the report (`data/grammar_book_test_overlap.json`), and the score on the 19 unseen sentences is the
+fair comparison.
 
-The laptop-trained model, used as the baseline in the evaluation:
+## Training
 
-| | |
-|---|---|
-| Parameters | 3,325,824 (3.3M) |
-| Architecture | 4 layers × 6 heads · 192 embedding · 64-token context |
-| Vocabulary | 8,000 SentencePiece BPE tokens |
-| Pre-training | TinyStories (~27k stories, 5.4M tokens) · 5,400 steps · val loss 2.48 |
-| Grammar fine-tuning | 100k pairs (76k used) · 4,700 steps |
-| Benchmark | 1/30 fixed exactly |
+Everything runs in `notebooks/pico_kaggle.ipynb` on a free Kaggle GPU: import it (**Create → New Notebook → File →
+Import Notebook**), enable **GPU T4 x2** and **Internet**, add `train.jsonl` as an input dataset, then **Save Version →
+Save & Run All**. It runs in the background for up to 12 hours, stops itself safely before the limit and continues
+from its own previous output. Once pre-training is done, adding that output as input (**Add Input → Your Work →
+Notebooks**) re-runs only the grammar fine-tuning (~1 hour).
 
-(With a GPU, `train_small.py` automatically uses a bigger 13.8M configuration: 6 × 6, 384 embedding, 256 context.)
+**1. Pre-training** – full TinyStories (2.1M stories, 452M tokens) + 300k FineWeb-Edu documents (328M tokens);
+16k SentencePiece BPE tokenizer with byte fallback; 600M training tokens with mixed precision, gradient accumulation,
+AdamW, warmup + cosine decay and checkpoints every 10 minutes.
 
-- Data: `data/stories.txt` – [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories) (~27k short stories), downloaded automatically, plus `data/corpus.txt`
-- Tokenizer: SentencePiece BPE with an 8,000-token vocabulary, trained on the stories and `data/words_alpha.txt`
-- Training: AdamW with weight decay, linear warmup + cosine LR decay, gradient clipping, dropout, weight tying, fused attention (`scaled_dot_product_attention`); the best checkpoint by validation loss is saved
+**2. Grammar fine-tuning** – each example is trained with the loss only on the answer part:
 
-```bash
-python -m training.train_small                        # trains once and saves models/pico.pt, then just generates
-python -m training.train_small --prompt "The little dog"
-python -m training.train_small --resume --steps 2000  # continue training
-python -m training.train_small --retrain              # train again from scratch
-python -m training.train_small --retrain-tokenizer --retrain   # rebuild the tokenizer too
-```
-
-## Large pre-training on a GPU (Kaggle / Colab)
-
-| | |
-|---|---|
-| Data | full TinyStories (~2.1M stories, 452M tokens) + 300k FineWeb-Edu documents (328M tokens) = 776M tokens |
-| Tokenizer | 16k SentencePiece BPE with byte fallback (no unknown characters) |
-| Model | 33.9M parameters, 8 layers / 8 heads, 512 embedding, 512-token context |
-| Training | 600M tokens, mixed precision, gradient accumulation, checkpoints every 10 min, auto-resume |
-
-**Kaggle (recommended):** import `notebooks/pico_kaggle.ipynb` (**Create → New Notebook → File → Import Notebook**),
-enable **GPU T4 x2** and **Internet**, add your `train.jsonl` as an input dataset, then
-**Save Version → Save & Run All**. It runs in the background for up to 12 hours (30 GPU hours/week free),
-stops itself safely before the limit, and can continue from its own previous output. To only redo the grammar
-fine-tuning, add the finished run's output as input (**Add Input → Your Work → Notebooks**) and run again:
-data preparation and pre-training are skipped (~25 min).
-
-**Colab:** open `notebooks/pico_colab.ipynb` in Colab, pick a **T4 GPU** runtime and run the cells in order.
-Data and checkpoints are saved to Google Drive (`MyDrive/pico/`).
-
-The scripts can also be run directly:
+- `Incorrect: <wrong sentence> Correct: <corrected sentence></s>` for
+  - `data/train.jsonl` – 100k pairs, mostly long Wikipedia-style sentences
+  - `make_synthetic.py` – ~388k short sentences broken on purpose with common learner mistakes (a/an, missing
+    articles, *dont*, was/were, *he go*, wrong tense, *I am work*, prepositions, plurals, punctuation …)
+  - `extract_grammar_pairs.py` – 653 pairs from the dataset's exercises (corrections, prepositions, articles,
+    tenses, verb choice, punctuation), repeated x20
+- `Question: <question> Answer: <answer></s>` for **all 4,233 conversations** of the English Practical Grammar
+  dataset (21 chapters), repeated x10
 
 ```bash
 python -m training.prepare_data                       # download + tokenize into data/big (once)
 python -m training.pretrain                           # pre-train models/pico_big.pt (re-run to resume)
 python -m training.make_synthetic --out data/synthetic.jsonl
-python -m training.finetune_grammar --data data/train.jsonl data/synthetic.jsonl --base models/pico_big.pt \
-    --out models/pico_big_grammar.pt --tokenizer-out models/pico_big_grammar_tokenizer.model --steps 15000 --batch-size 32
+git clone https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset data/english-practical-grammar
+python -m training.extract_grammar_pairs              # -> data/grammar_book.jsonl + test-set overlap
+python -m training.finetune_grammar --data data/train.jsonl data/synthetic.jsonl "data/grammar_book.jsonl*20" \
+    $(for f in data/english-practical-grammar/data/*.jsonl; do echo "$f*10"; done) \
+    --block-size 1024 --steps 20000 --batch-size 32  # -> models/pico_big_grammar.pt
 python -m training.export_model models/pico_big_grammar.pt models/pico_big_grammar_small.pt
 ```
 
-## Grammar fine-tuning
-
-Each `{"input": wrong, "output": corrected}` pair is trained as `Incorrect: <input> Correct: <output></s>`,
-with the loss only on the corrected part.
-
-- `data/train.jsonl` – 100k pairs, mostly long Wikipedia-style sentences
-- `make_synthetic.py` – ~385k short sentences from TinyStories + FineWeb-Edu, broken on purpose with common
-  learner mistakes: a/an, missing articles, *dont*, was/were and has/have, *he go* / *they plays*, wrong tense,
-  *I am work*, to/too and their/there, prepositions, plurals, capitals and punctuation (10% are left correct, so the
-  model learns to leave good sentences alone)
-- [English Practical Grammar dataset](https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset) –
-  4,233 tutor conversations across 21 grammar chapters (nouns, articles, tenses, concord, prepositions, voice,
-  speech, punctuation …). **Every conversation** is trained as `Question: <question> Answer: <answer></s>`, and
-  `extract_grammar_pairs.py` turns its exercises into ~650 extra correction pairs (corrections, verb choice,
-  prepositions, articles, tenses, punctuation). Files can be repeated with `file*N`
-- Symbols the base tokenizer never saw are appended to the vocabulary, so all pre-trained token ids stay valid
-
-```bash
-git clone https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset data/english-practical-grammar
-python -m training.extract_grammar_pairs              # -> data/grammar_book.jsonl (+ test-set overlap report)
-python -m training.finetune_grammar --data data/train.jsonl data/synthetic.jsonl "data/grammar_book.jsonl*20"     $(for f in data/english-practical-grammar/data/*.jsonl; do echo "$f*10"; done)     --base models/pico_big.pt --out models/pico_big_grammar.pt --tokenizer-out models/pico_big_grammar_tokenizer.model     --block-size 1024 --steps 20000 --batch-size 32       # on a GPU (Kaggle notebook does this)
-python ask.py "What is a noun?"                       # grammar questions (models trained with the dataset)
-
-python -m training.finetune_grammar                   # small model: models/pico.pt -> models/pico_grammar.pt
-python -m training.finetune_grammar --resume --steps 3000
-```
+`python -m training.train_small` trains a small 3.3M-parameter model on TinyStories on a CPU only, for learning
+how pre-training works.

@@ -5,7 +5,7 @@
 # (exact match, word error rate before vs after, edit precision / recall / F0.5).
 #
 #   python -m evaluation.evaluate                                  # big model vs small baseline
-#   python -m evaluation.evaluate --model models/pico_grammar.pt --baseline none
+#   python -m evaluation.evaluate --baseline models/other_model.pt     # compare with another model
 
 import argparse
 import difflib
@@ -26,15 +26,15 @@ from pico.grammar import PROMPT, correct, load_grammar_model, resolve_model_path
 
 parser = argparse.ArgumentParser(description="Evaluate a Pico grammar model and write an HTML report")
 parser.add_argument("--model", default="models/pico_big_grammar_small.pt")
-parser.add_argument("--baseline", default="models/pico_grammar.pt", help="model to compare against, or 'none'")
+parser.add_argument("--baseline", default="none", help="model to compare against, or 'none'")
 parser.add_argument("--pretrain", default="models/pico_big.pt", help="pre-training checkpoint (for training stats)")
-parser.add_argument("--questions", default="model  testing/qns.txt")
-parser.add_argument("--answers", default="model  testing/ans.txt")
+parser.add_argument("--questions", default="evaluation/test_set/qns.txt")
+parser.add_argument("--answers", default="evaluation/test_set/ans.txt")
 parser.add_argument("--out", default="evaluation/reports/report.html")
 parser.add_argument("--runs", type=int, default=3, help="timed runs per sentence (median is reported)")
-parser.add_argument("--overlap", default=None,
-                    help="for models trained on the grammar dataset: data/grammar_book_test_overlap.json "
-                         "(test sentences that also appear in the training data are marked and scored separately)")
+parser.add_argument("--overlap", default="data/grammar_book_test_overlap.json",
+                    help="test sentences that also appear in the training data (from training/extract_grammar_pairs.py) "
+                         "are marked and scored separately; 'none' to disable")
 args = parser.parse_args()
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 torch.manual_seed(0)
@@ -174,7 +174,7 @@ def evaluate(path):
 
 
 print(f"\nEvaluating {args.model}")
-SEEN = set(json.load(open(args.overlap))["test_ids_in_training_data"]) if args.overlap else set()
+SEEN = set(json.load(open(args.overlap))["test_ids_in_training_data"]) if os.path.exists(args.overlap) else set()
 main = evaluate(resolve_model_path(args.model))
 base = None
 if args.baseline.lower() != "none" and os.path.exists(resolve_model_path(args.baseline)):

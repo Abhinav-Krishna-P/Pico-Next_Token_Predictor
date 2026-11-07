@@ -9,9 +9,9 @@ data/synthetic.jsonl
 data/big/
 data/test/
 
-# large models trained on Kaggle/Colab and local experiments (models/pico.pt + tokenizers are tracked)
-models/pico_big*
-models/pico_grammar.pt
+# models are too big for git: download them from the Kaggle notebook's Output tab into models/
+models/*.pt
+models/*.model
 *.tmp
 
 # English Practical Grammar dataset (cloned) and files generated from it

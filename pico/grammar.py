@@ -12,7 +12,7 @@ QA_PROMPT = "Question: {} Answer:"  # and grammar questions (English Practical G
 
 
 def resolve_model_path(path):
-    """Accept a bare file name for models in models/ (e.g. "pico_grammar.pt")."""
+    """Accept a bare file name for models in models/ (e.g. "pico_big_grammar_small.pt")."""
     if not os.path.exists(path) and os.path.exists(os.path.join("models", path)):
         return os.path.join("models", path)
     return path
@@ -20,7 +20,7 @@ def resolve_model_path(path):
 
 def load_grammar_model(path, device="cpu"):
     ckpt = torch.load(path, map_location=device)
-    sp = spm.SentencePieceProcessor(model_file=find_tokenizer(ckpt, path, "models/tokenizer_grammar.model"))
+    sp = spm.SentencePieceProcessor(model_file=find_tokenizer(ckpt, path, "models/pico_big_grammar_tokenizer.model"))
     model = Pico(**ckpt["config"]).to(device)
     model.load_state_dict(ckpt["model"])
     model.eval()

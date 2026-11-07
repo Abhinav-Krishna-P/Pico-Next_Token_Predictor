@@ -65,19 +65,19 @@
       </svg>
       <div><h1>pico</h1><div class="tag">NEXT TOKEN PREDICTOR</div></div>
     </div>
-    <div class="version">v0.2.0</div>
+    <div class="version">v0.3.0</div>
   </header>
 
-  <p class="headline">A tiny language model <b>built from scratch</b> in PyTorch that <b>corrects English grammar</b>, and runs on a laptop CPU.</p>
+  <p class="headline">A tiny language model <b>built from scratch</b> in PyTorch that <b>corrects English grammar</b> and answers grammar questions, on a laptop CPU.</p>
 
   <div class="demo mono">
-    <div><span class="lbl">IN</span>She <s>don't</s> like coffee.</div>
-    <div><span class="lbl">OUT</span>She <u>doesn't</u> like coffee.<span class="cursor"></span></div>
+    <div><span class="lbl">IN</span>I look forward to <s>meet</s> you.</div>
+    <div><span class="lbl">OUT</span>I look forward to <u>meeting</u> you.<span class="cursor"></span></div>
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="v">33.9<small>M</small></div><div class="k">parameters</div></div>
-    <div class="stat"><div class="v">135<small>MB</small></div><div class="k">model weights<br>(fp32)</div></div>
+    <div class="stat"><div class="v">34.1<small>M</small></div><div class="k">parameters</div></div>
+    <div class="stat"><div class="v">137<small>MB</small></div><div class="k">model weights<br>(fp32)</div></div>
     <div class="stat"><div class="v">0.5<small>s</small></div><div class="k">per sentence<br>on a laptop CPU</div></div>
     <div class="stat"><div class="v">776<small>M</small></div><div class="k">training tokens</div></div>
   </div>
@@ -86,25 +86,28 @@
     <section class="bench">
       <h2>GRAMMAR BENCHMARK · 30 SENTENCES</h2>
       <div class="row">
-        <div class="top"><span>Sentences fixed exactly</span><b>11 / 30</b></div>
-        <div class="track"><div class="fill" style="width:36.7%"></div></div>
-        <div class="ghost"><div class="fill" style="width:3.3%"></div></div>
-        <div class="was">v0.1 laptop model: 1 / 30</div>
+        <div class="top"><span>Sentences fixed exactly</span><b>18 / 30</b></div>
+        <div class="track"><div class="fill" style="width:60%"></div></div>
+        <div class="ghost"><div class="fill" style="width:36.7%"></div></div>
+        <div class="was">v0.2: 11 / 30</div>
       </div>
       <div class="row">
-        <div class="top"><span>Word errors removed</span><b>26%</b></div>
-        <div class="track"><div class="fill" style="width:26%"></div></div>
-        <div class="was">v0.1 laptop model: −31% (made sentences worse)</div>
+        <div class="top"><span>Word errors removed</span><b>51%</b></div>
+        <div class="track"><div class="fill" style="width:51%"></div></div>
+        <div class="ghost"><div class="fill" style="width:26%"></div></div>
+        <div class="was">v0.2: 26%</div>
       </div>
       <div class="row">
-        <div class="top"><span>Precision of its corrections</span><b>0.69</b></div>
-        <div class="track"><div class="fill" style="width:69%"></div></div>
+        <div class="top"><span>Precision of its corrections</span><b>0.76</b></div>
+        <div class="track"><div class="fill" style="width:76%"></div></div>
+        <div class="ghost"><div class="fill" style="width:69%"></div></div>
+        <div class="was">v0.2: 0.69</div>
       </div>
       <div class="row">
-        <div class="top"><span>Edit F0.5 score</span><b>0.57</b></div>
-        <div class="track"><div class="fill" style="width:57%"></div></div>
-        <div class="ghost"><div class="fill" style="width:10%"></div></div>
-        <div class="was">v0.1 laptop model: 0.10</div>
+        <div class="top"><span>Edit F0.5 score</span><b>0.72</b></div>
+        <div class="track"><div class="fill" style="width:72%"></div></div>
+        <div class="ghost"><div class="fill" style="width:57%"></div></div>
+        <div class="was">v0.2: 0.57</div>
       </div>
     </section>
 
@@ -114,16 +117,16 @@
         <tr><td>Architecture</td><td>GPT decoder</td></tr>
         <tr><td>Layers × heads</td><td>8 × 8</td></tr>
         <tr><td>Embedding size</td><td>512</td></tr>
-        <tr><td>Context length</td><td>512 tokens</td></tr>
+        <tr><td>Context length</td><td>1,024 tokens</td></tr>
         <tr><td>Vocabulary</td><td>16,384 BPE</td></tr>
         <tr><td>Compute / token</td><td>≈ 67 MFLOPs</td></tr>
-        <tr><td>Test loss</td><td>0.49</td></tr>
+        <tr><td>Test loss</td><td>0.28</td></tr>
       </table>
     </section>
   </div>
 
   <footer>
-    <div class="chips"><span>TinyStories</span><span>FineWeb-Edu</span><span>485k grammar pairs</span><span>Kaggle 2× T4</span></div>
+    <div class="chips"><span>TinyStories</span><span>FineWeb-Edu</span><span>English Practical Grammar</span><span>Kaggle 2× T4</span></div>
     <div class="mono">github.com/Abhinav-Krishna-P</div>
   </footer>
 </div>
