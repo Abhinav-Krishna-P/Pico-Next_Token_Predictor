@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Pico Update Poster</title>
+<style>
+  :root { --bg:#0b0b0c; --fg:#f4f4f2; --dim:#a3a3a0; --faint:#5c5c5a; --line:#262627; --card:#141415; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:1080px; height:1350px; background:var(--bg); }
+  body { color:var(--fg); font-family:"Segoe UI", "Helvetica Neue", Arial, sans-serif; overflow:hidden; }
+  .poster { height:100%; padding:72px 80px 64px; display:flex; flex-direction:column; }
+  .mono { font-family:Consolas, "Cascadia Mono", monospace; }
+
+  header { display:flex; align-items:center; gap:20px; }
+  header h1 { font-size:58px; font-weight:800; letter-spacing:-2px; line-height:1; }
+  header .tag { font-size:14px; letter-spacing:4px; color:var(--dim); font-weight:600; margin-top:6px; }
+
+  .versions { margin-top:64px; display:flex; align-items:center; gap:26px; font-size:30px; font-weight:600; }
+  .pill { border:1.5px solid var(--faint); color:var(--dim); border-radius:999px; padding:8px 24px; }
+  .pill.now { border-color:var(--fg); color:var(--fg); background:var(--fg); color:var(--bg); }
+  .arrow { color:var(--faint); font-size:34px; }
+
+  .hero { margin-top:46px; }
+  .hero .label { font-size:22px; color:var(--dim); }
+  .score { display:flex; align-items:baseline; gap:30px; margin-top:6px; }
+  .score .old { font-size:96px; font-weight:300; color:var(--faint); letter-spacing:-3px; text-decoration:line-through; text-decoration-thickness:4px; }
+  .score .new { font-size:190px; font-weight:800; letter-spacing:-8px; line-height:1; }
+  .score .new small { font-size:70px; font-weight:600; color:var(--dim); letter-spacing:-2px; }
+  .hero .sub { font-size:22px; color:var(--dim); margin-top:8px; }
+
+  .facts { margin-top:44px; display:grid; grid-template-columns:repeat(3, 1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .fact { padding:24px 0; }
+  .fact + .fact { border-left:1px solid var(--line); padding-left:28px; }
+  .fact .v { font-size:44px; font-weight:800; letter-spacing:-1.5px; }
+  .fact .k { font-size:17px; color:var(--dim); margin-top:4px; }
+
+  .cols { margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:48px; }
+  h2 { font-size:15px; letter-spacing:3.5px; color:var(--dim); font-weight:700; margin-bottom:18px; }
+  ul { list-style:none; }
+  li { font-size:21px; line-height:1.4; padding:9px 0 9px 26px; position:relative; border-bottom:1px solid var(--line); }
+  li::before { content:""; position:absolute; left:0; top:20px; width:10px; height:10px; border-radius:2px; background:var(--fg); opacity:.55; }
+  li .m { color:var(--dim); }
+  li s { color:var(--faint); }
+
+  footer { margin-top:auto; display:flex; justify-content:space-between; align-items:center; font-size:17px; color:var(--dim); }
+</style></head>
+<body><div class="poster">
+  <header>
+    <svg width="76" height="76" viewBox="0 0 128 128" aria-hidden="true">
+      <rect width="128" height="128" rx="30" fill="#f4f4f2"/>
+      <rect x="30" y="38" width="15" height="62" rx="7.5" fill="#0b0b0c"/>
+      <circle cx="60" cy="58" r="18" fill="none" stroke="#0b0b0c" stroke-width="15"/>
+      <rect x="88" y="55" width="13" height="28" rx="3" fill="#0b0b0c" fill-opacity="0.45"/>
+    </svg>
+    <div><h1>pico</h1><div class="tag">NEXT TOKEN PREDICTOR</div></div>
+  </header>
+
+  <div class="versions"><span class="pill">v0.2</span><span class="arrow">→</span><span class="pill now">v0.3</span></div>
+
+  <section class="hero">
+    <div class="label">English sentence-correction test</div>
+    <div class="score"><span class="old">11/30</span><span class="new">18<small>/30</small></span></div>
+    <div class="sub">sentences corrected exactly · word errors removed: 26% → 51%</div>
+  </section>
+
+  <div class="facts">
+    <div class="fact"><div class="v">34.1M</div><div class="k">parameters</div></div>
+    <div class="fact"><div class="v">1,024</div><div class="k">token context (was 512)</div></div>
+    <div class="fact"><div class="v">0.5 s</div><div class="k">per sentence on a laptop CPU</div></div>
+  </div>
+
+  <div class="cols">
+    <section>
+      <h2>WHAT CHANGED</h2>
+      <ul>
+        <li>Trained on my own <b>English Practical Grammar</b> dataset</li>
+        <li><b>4,233</b> grammar lessons + <b>653</b> correction exercises</li>
+        <li>20,000 fine-tuning steps on a free Kaggle GPU</li>
+        <li>New: answers grammar questions <span class="m">(early stage)</span></li>
+      </ul>
+    </section>
+    <section>
+      <h2>NOW IT FIXES</h2>
+      <ul class="mono" style="font-size:19px">
+        <li><s>furnitures</s> → furniture</li>
+        <li>look forward to <s>meet</s> → meeting</li>
+        <li><s>despite of</s> → despite</li>
+        <li>good <s>in</s> → at maths</li>
+      </ul>
+    </section>
+  </div>
+
+  <footer><span>Built from scratch in PyTorch</span><span class="mono">github.com/Abhinav-Krishna-P</span></footer>
+</div></body></html>
