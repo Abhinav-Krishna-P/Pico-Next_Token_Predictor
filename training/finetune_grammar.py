@@ -1,10 +1,11 @@
 # finetune_grammar.py – fine-tune the pre-trained Pico (pico.pt) to correct grammar
 #
-# Data: a .jsonl file with one {"input": "<wrong sentence>", "output": "<corrected sentence>"} per line.
-# Each pair becomes one training example:
-#     Incorrect: <input> Correct: <output></s>
-# and the loss is computed only on the "<output></s>" part, so the model learns to
-# write the correction (not to predict the mistakes).
+# Data: .jsonl files with one example per line, either
+#   {"input": "<wrong sentence>", "output": "<corrected sentence>"}  ->  Incorrect: <input> Correct: <output></s>
+#   {"messages": [{"role": "user", ...}, {"role": "assistant", ...}]} ->  Question: <user> Answer: <assistant></s>
+# The loss is computed only on the part after "Correct:" / "Answer:", so the model learns to write the
+# correction or answer (not to predict the mistakes). Add "*N" to a file to repeat it N times in training,
+# e.g. --data data/train.jsonl "data/grammar_book.jsonl*10".
 
 import argparse
 import json
@@ -20,11 +21,12 @@ import sentencepiece as spm
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2
 
 from pico import Pico, find_tokenizer
+from pico.grammar import PROMPT, QA_PROMPT
 
 
 parser = argparse.ArgumentParser(description="Fine-tune Pico for grammar correction")
 parser.add_argument("--data", nargs="+", default=["data/train.jsonl"],
-                    help="one or more jsonl files with input/output pairs")
+                    help="jsonl files with input/output pairs or chat messages; 'file*N' repeats a file N times")
 parser.add_argument("--base", default="models/pico.pt", help="pre-trained checkpoint to start from")
 parser.add_argument("--out", default="models/pico_grammar.pt", help="where to save the fine-tuned model")
 parser.add_argument("--resume", action="store_true", help="continue fine-tuning from --out")
@@ -61,7 +63,6 @@ BASE_TOKENIZER = find_tokenizer(ckpt, args.base, "models/tokenizer.model")
 TOKENIZER = find_tokenizer(ckpt, args.out, args.tokenizer_out) if args.resume else args.tokenizer_out
 if args.block_size is None:
     args.block_size = max(128, ckpt["config"]["block_size"])
-PROMPT = "Incorrect: {} Correct:"
 warmup_steps = max(1, args.steps // 20)
 min_lr = args.lr / 10
 eval_interval = max(1, args.steps // 10)
@@ -69,11 +70,21 @@ log_interval = 10
 weight_decay = 0.1
 grad_clip = 1.0
 
-rows = []
-for path in args.data:
+rows = []   # (prompt text, answer text, times repeated in training)
+for spec in args.data:
+    path, _, repeat = spec.rpartition("*") if spec.rpartition("*")[2].isdigit() else (spec, "", "1")
     n = len(rows)
-    rows += [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
-    print(f"Loaded {len(rows) - n:,} pairs from {path}")
+    for line in open(path, encoding="utf-8"):
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        if "messages" in r:        # chat example: every user turn with the assistant reply after it
+            msgs = r["messages"]
+            rows += [(QA_PROMPT.format(u["content"]), a["content"], int(repeat))
+                     for u, a in zip(msgs, msgs[1:]) if u["role"] == "user" and a["role"] == "assistant"]
+        else:
+            rows.append((PROMPT.format(r["input"]), r["output"], int(repeat)))
+    print(f"Loaded {len(rows) - n:,} examples from {path}" + (f" (x{repeat} in training)" if repeat != "1" else ""))
 
 
 # ----------------------------
@@ -85,8 +96,8 @@ for path in args.data:
 if not args.resume:
     base_sp = spm.SentencePieceProcessor(model_file=BASE_TOKENIZER)
     counts = {}
-    for r in rows:
-        for ch in set(r["input"] + r["output"]):
+    for prompt_text, answer_text, _ in rows:
+        for ch in set(prompt_text + answer_text):
             if not ch.isspace() and ch != "�" and base_sp.unk_id() in base_sp.encode(ch):
                 counts[ch] = counts.get(ch, 0) + 1
     new_symbols = sorted(ch for ch, n in counts.items() if n >= 20)  # ignore very rare characters
@@ -114,9 +125,9 @@ print("vocab_size :", vocab_size)
 # ----------------------------
 examples = []
 skipped_long = skipped_unk = 0
-prompts = sp.encode([PROMPT.format(r["input"]) for r in rows], out_type=int)
-answers = sp.encode([r["output"] for r in rows], out_type=int)
-for p, a in zip(prompts, answers):
+prompts = sp.encode([r[0] for r in rows], out_type=int)
+answers = sp.encode([r[1] for r in rows], out_type=int)
+for p, a, (_, _, repeat) in zip(prompts, answers, rows):
     if sp.unk_id() in a:
         skipped_unk += 1       # never teach the model to output <unk>
         continue
@@ -124,13 +135,15 @@ for p, a in zip(prompts, answers):
     if len(p) + len(a) > args.block_size + 1:
         skipped_long += 1
         continue
-    examples.append((p, a))
-print(f"Using {len(examples):,} pairs (skipped {skipped_long:,} too long for {args.block_size} tokens, "
+    examples.append((p, a, repeat))
+print(f"Using {len(examples):,} examples (skipped {skipped_long:,} too long for {args.block_size} tokens, "
       f"{skipped_unk:,} with unknown characters)")
 
 random.shuffle(examples)
 n_val = min(1000, len(examples) // 20)
-val_examples, train_examples = examples[:n_val], examples[n_val:]
+val_examples = [(p, a) for p, a, _ in examples[:n_val]]
+train_examples = [(p, a) for p, a, repeat in examples[n_val:] for _ in range(repeat)]   # repeats after the split
+print(f"{len(train_examples):,} training / {len(val_examples):,} validation examples")
 
 
 def make_batch(batch):

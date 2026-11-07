@@ -7,7 +7,8 @@ import sentencepiece as spm
 
 from .model import Pico, find_tokenizer
 
-PROMPT = "Incorrect: {} Correct:"   # the format finetune_grammar.py trains on
+PROMPT = "Incorrect: {} Correct:"   # the formats finetune_grammar.py trains on: sentence correction
+QA_PROMPT = "Question: {} Answer:"  # and grammar questions (English Practical Grammar dataset)
 
 
 def resolve_model_path(path):
@@ -26,10 +27,19 @@ def load_grammar_model(path, device="cpu"):
     return model, sp, ckpt
 
 
-@torch.no_grad()
 def correct(model, sp, sentence):
     """Greedy-decode the corrected sentence. Returns (text, prompt_tokens, generated_tokens)."""
-    prompt = sp.encode(PROMPT.format(sentence.strip()), out_type=int)
+    return complete(model, sp, PROMPT.format(sentence.strip()))
+
+
+def answer(model, sp, question):
+    """Answer a grammar question (models fine-tuned with the chat dataset)."""
+    return complete(model, sp, QA_PROMPT.format(question.strip()))
+
+
+@torch.no_grad()
+def complete(model, sp, prompt_text):
+    prompt = sp.encode(prompt_text, out_type=int)
     max_new = model.block_size - len(prompt)
     if max_new <= 0:
         return "(sentence too long for the model's context)", len(prompt), 0

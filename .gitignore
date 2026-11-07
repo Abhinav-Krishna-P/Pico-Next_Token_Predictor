@@ -13,3 +13,8 @@ data/test/
 models/pico_big*
 models/pico_grammar.pt
 *.tmp
+
+# English Practical Grammar dataset (cloned) and files generated from it
+data/english-practical-grammar/
+data/grammar_book.jsonl
+data/grammar_book_test_overlap.json

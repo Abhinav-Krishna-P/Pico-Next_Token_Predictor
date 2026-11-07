@@ -32,6 +32,9 @@ parser.add_argument("--questions", default="model  testing/qns.txt")
 parser.add_argument("--answers", default="model  testing/ans.txt")
 parser.add_argument("--out", default="evaluation/reports/report.html")
 parser.add_argument("--runs", type=int, default=3, help="timed runs per sentence (median is reported)")
+parser.add_argument("--overlap", default=None,
+                    help="for models trained on the grammar dataset: data/grammar_book_test_overlap.json "
+                         "(test sentences that also appear in the training data are marked and scored separately)")
 args = parser.parse_args()
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 torch.manual_seed(0)
@@ -171,6 +174,7 @@ def evaluate(path):
 
 
 print(f"\nEvaluating {args.model}")
+SEEN = set(json.load(open(args.overlap))["test_ids_in_training_data"]) if args.overlap else set()
 main = evaluate(resolve_model_path(args.model))
 base = None
 if args.baseline.lower() != "none" and os.path.exists(resolve_model_path(args.baseline)):
@@ -360,8 +364,10 @@ if base:
 
 badge = {"correct": "Exact", "minor": "Style only", "improved": "Improved", "nogain": "No gain",
          "unchanged": "Unchanged", "worse": "Worse"}
+SEEN_MARK = '<sup title="also in the training data">*</sup>'
 sentence_rows = "".join(
-    f'<tr><td class="num">{r["id"]}</td><td>{E(r["src"])}</td><td>{E(r["ref"])}</td>'
+    f'<tr><td class="num">{r["id"]}{SEEN_MARK if r["id"] in SEEN else ""}</td>'
+    f'<td>{E(r["src"])}</td><td>{E(r["ref"])}</td>'
     f'<td>{diff_html(r["pred"], r["ref"])}</td><td><span class="badge o-{r["outcome"]}">{badge[r["outcome"]]}</span></td>'
     f'<td class="num">{r["err_before"]}→{r["err_after"]}</td><td class="num">{r["loss_ref"]:.2f}</td>'
     f'<td class="num">{r["latency_ms"]:.0f}</td></tr>' for r in m["rows"])
@@ -371,6 +377,12 @@ summary = (f"Pico fixed <b>{solved} of {n}</b> sentences completely and removed 
            f"word errors, running in a median <b>{m['lat_median']:.0f} ms</b> per sentence on a laptop CPU with only "
            f"<b>{fmt_m(m['params'])}</b> parameters. On <b>{m['prefers_correct']} of {n}</b> sentences it assigns the "
            f"answer key a higher probability than the original mistake.")
+if SEEN:
+    unseen = [r for r in m["rows"] if r["id"] not in SEEN]
+    fixed_unseen = sum(r["outcome"] in ("correct", "minor") for r in unseen)
+    summary += (f" <b>Note:</b> {len(SEEN)} of the {n} test sentences (or close variants, marked * below) also appear "
+                f"in the training data; on the <b>{len(unseen)} unseen</b> sentences Pico fixed <b>{fixed_unseen}</b> "
+                f"({pct(fixed_unseen / len(unseen)) if unseen else '–'}).")
 
 LOGO = ('<svg viewBox="0 0 128 128" width="44" height="44" aria-hidden="true">'
         '<rect width="128" height="128" rx="30" fill="#111"/><rect x="30" y="38" width="15" height="62" rx="7.5" fill="#fff"/>'

@@ -44,6 +44,7 @@ The v0.1.0 overview is kept in [assets/pico_overview.png](assets/pico_overview.p
 ```
 Pico/
 ├── correct.py              # fix grammar with a trained model (start here)
+├── ask.py                  # ask a grammar question (after training with the grammar dataset)
 ├── pico/                   # the model
 │   ├── model.py            #   Pico GPT: embeddings, transformer blocks, generation, resizing
 │   └── transformer_block.py#   causal self-attention, feed-forward, transformer block
@@ -52,6 +53,7 @@ Pico/
 │   ├── prepare_data.py     #   download + tokenize the large GPU dataset (data/big/)
 │   ├── pretrain.py         #   large GPU pre-training (models/pico_big.pt)
 │   ├── make_synthetic.py   #   synthetic grammar pairs with common learner mistakes
+│   ├── extract_grammar_pairs.py # correction pairs from the English Practical Grammar dataset
 │   ├── finetune_grammar.py #   grammar-correction fine-tuning
 │   └── export_model.py     #   strip the optimizer state -> ~3x smaller file for inference
 ├── evaluation/
@@ -183,9 +185,19 @@ with the loss only on the corrected part.
   learner mistakes: a/an, missing articles, *dont*, was/were and has/have, *he go* / *they plays*, wrong tense,
   *I am work*, to/too and their/there, prepositions, plurals, capitals and punctuation (10% are left correct, so the
   model learns to leave good sentences alone)
+- [English Practical Grammar dataset](https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset) –
+  4,233 tutor conversations across 21 grammar chapters (nouns, articles, tenses, concord, prepositions, voice,
+  speech, punctuation …). **Every conversation** is trained as `Question: <question> Answer: <answer></s>`, and
+  `extract_grammar_pairs.py` turns its exercises into ~650 extra correction pairs (corrections, verb choice,
+  prepositions, articles, tenses, punctuation). Files can be repeated with `file*N`
 - Symbols the base tokenizer never saw are appended to the vocabulary, so all pre-trained token ids stay valid
 
 ```bash
+git clone https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset data/english-practical-grammar
+python -m training.extract_grammar_pairs              # -> data/grammar_book.jsonl (+ test-set overlap report)
+python -m training.finetune_grammar --data data/train.jsonl data/synthetic.jsonl "data/grammar_book.jsonl*20"     $(for f in data/english-practical-grammar/data/*.jsonl; do echo "$f*10"; done)     --base models/pico_big.pt --out models/pico_big_grammar.pt --tokenizer-out models/pico_big_grammar_tokenizer.model     --block-size 1024 --steps 20000 --batch-size 32       # on a GPU (Kaggle notebook does this)
+python ask.py "What is a noun?"                       # grammar questions (models trained with the dataset)
+
 python -m training.finetune_grammar                   # small model: models/pico.pt -> models/pico_grammar.pt
 python -m training.finetune_grammar --resume --steps 3000
 ```
