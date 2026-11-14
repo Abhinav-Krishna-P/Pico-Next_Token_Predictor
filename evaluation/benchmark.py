@@ -29,7 +29,6 @@ import argparse
 import difflib
 import json
 import os
-import re
 import subprocess
 import sys
 import tarfile
@@ -39,7 +38,8 @@ import urllib.request
 import torch
 import torch.nn.functional as F
 
-from pico.grammar import PROMPT, load_grammar_model, resolve_model_path
+from evaluation.m2 import detok, read_m2, surface
+from pico.grammar import PROMPT, filter_correction, load_grammar_model, resolve_model_path
 
 DATA = "data/benchmarks"
 OUT = "evaluation/reports/benchmarks"
@@ -58,6 +58,8 @@ parser.add_argument("--sets", nargs="+", default=list(SETS), choices=list(SETS))
 parser.add_argument("--limit", type=int, default=0, help="only the first N sentences of each set (quick checks)")
 parser.add_argument("--batch-size", type=int, default=16)
 parser.add_argument("--rerun", action="store_true", help="regenerate cached corrections")
+parser.add_argument("--no-filter", action="store_true",
+                    help="score the raw model output, without the edit filter of pico.grammar.correct")
 args = parser.parse_args()
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 torch.manual_seed(0)
@@ -110,45 +112,9 @@ def ensure_data(key, annotator):
             f.write("\n")
 
 
-def read_m2(path):
-    """Blocks of an M2 file: (source tokens, block text)."""
-    blocks = open(path, encoding="utf-8").read().strip().split("\n\n")
-    return [(b.split("\n")[0][2:].split(), b) for b in blocks]
-
-
 # ----------------------------
-# Detokenize / re-tokenize
+# Re-tokenize
 # ----------------------------
-CLITICS = {"n't", "'s", "'re", "'ve", "'ll", "'d", "'m", "'"}
-
-
-def detok_groups(tokens):
-    """Glue tokens into whitespace-separated words the way normal text is written.
-    Returns a list of groups (lists of token indices); each group is one word of the text."""
-    groups, quote_open, glue_next = [], False, False
-    for i, t in enumerate(tokens):
-        is_quote = t in ('"', "``", "''")
-        closing = is_quote and (t == "''" or (t == '"' and quote_open))
-        attach = groups and (glue_next or t.lower() in CLITICS or closing or re.fullmatch(r"[,.!?;:%)\]}]+", t))
-        if attach:
-            groups[-1].append(i)
-        else:
-            groups.append([i])
-        glue_next = t in ("(", "[", "{", "$") or (is_quote and not closing)
-        if is_quote:
-            quote_open = not closing
-    return groups
-
-
-def surface(tok):
-    return '"' if tok in ("``", "''") else tok
-
-
-def detok(tokens):
-    groups = detok_groups(tokens)
-    return " ".join("".join(surface(tokens[i]) for i in g) for g in groups), groups
-
-
 def retokenize(tokens, groups, hyp, annotator):
     """Tokens of the model output: unchanged words keep the source tokens, changed words go through spaCy."""
     src_words = ["".join(surface(tokens[i]) for i in g) for g in groups]
@@ -274,6 +240,12 @@ def run_set(key, model, sp, annotator, model_name):
         with open(cache, "w", encoding="utf-8") as f:
             f.write("\n".join(h.replace("\n", " ") for h in hyps))
 
+    if not args.no_filter:   # same filter as correct.py, applied to the cached raw corrections
+        t0 = time.perf_counter()
+        hyps = [filter_correction(model, sp, text, normalize(h)) for (text, _), h in zip(sources, hyps)]
+        print(f"  edit filter applied in {time.perf_counter() - t0:.0f} s")
+        tag += ".filtered"
+
     hyp_m2, ref_m2 = f"{OUT}/{tag}.hyp.m2", f"{OUT}/{tag}.ref.m2"
     changed = 0
     with open(hyp_m2, "w", encoding="utf-8") as fh, open(ref_m2, "w", encoding="utf-8") as fr:
@@ -314,7 +286,8 @@ for key in args.sets:
     print(f"  P {r['precision']:.4f} | R {r['recall']:.4f} | F0.5 {r['f05']:.4f} "
           f"(TP {r['tp']}, FP {r['fp']}, FN {r['fn']}; changed {r['changed']}/{r['sentences']} sentences)")
 
-summary_path = f"{OUT}/{model_name}" + (f".first{args.limit}" if args.limit else "") + ".json"
+summary_path = (f"{OUT}/{model_name}" + (f".first{args.limit}" if args.limit else "")
+                + (".nofilter" if args.no_filter else "") + ".json")
 saved = json.load(open(summary_path, encoding="utf-8"))["results"] if os.path.exists(summary_path) else {}
 saved.update(results)   # running one set keeps the scores of the others
 with open(summary_path, "w", encoding="utf-8") as f:

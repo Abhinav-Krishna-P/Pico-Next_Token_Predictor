@@ -482,7 +482,7 @@ footer {{ color:var(--muted); font-size:12px; margin-top:8px; }}
 
 <section class="card">
   <h2>Latency per sentence</h2>
-  <p class="note">Wall-clock time to generate the full correction (greedy decoding, CPU, median of {args.runs} runs).</p>
+  <p class="note">Wall-clock time to generate the full correction (greedy decoding + edit filter, CPU, median of {args.runs} runs).</p>
   {bar_chart_latency(m['rows'], m['lat_median'])}
   <div class="legend"><span><i style="background:var(--mid)"></i>Latency per sentence (ms)</span>
   <span><i style="background:var(--accent)"></i>Median {m['lat_median']:.0f} ms</span></div>

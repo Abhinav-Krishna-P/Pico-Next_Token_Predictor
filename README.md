@@ -25,9 +25,9 @@ python ask.py "What is a noun?"                                 ->  A noun is a 
 | Tokenizer | SentencePiece BPE, **16,384** tokens, byte fallback |
 | Pre-training | **776M tokens** (TinyStories + FineWeb-Edu), 600M trained · 4,577 steps · val loss 2.50 · Kaggle 2× T4, ~4 h |
 | Fine-tuning | 100k grammar pairs + 388k synthetic learner mistakes + the [English Practical Grammar dataset](https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset) (4,233 conversations + 653 extracted pairs) · 20,000 steps · val loss 0.92 |
-| Benchmark (30 sentences) | **18/30** fixed exactly · **51%** of word errors removed · precision **0.76** · F0.5 **0.72** · test loss **0.28** |
-| Standard benchmarks (ERRANT F0.5) | BEA-2019 dev **0.10** · CoNLL-2014 **0.10** · JFLEG **0.26** – real learner essays, see [Evaluate](#evaluate) |
-| Speed | ~0.5 s per sentence on a laptop CPU |
+| Benchmark (30 sentences) | **18/30** fixed exactly · **54%** of word errors removed · precision **0.83** · F0.5 **0.77** · test loss **0.28** |
+| Standard benchmarks (ERRANT F0.5) | BEA-2019 dev **0.16** · CoNLL-2014 **0.19** · JFLEG **0.36** – real learner essays, see [Evaluate](#evaluate) (0.10 / 0.10 / 0.26 without the [edit filter](#edit-filter)) |
+| Speed | ~0.4–0.5 s per sentence on a laptop CPU |
 
 ### Versions
 
@@ -51,13 +51,14 @@ Pico/
 ├── pico/                       # the model
 │   ├── model.py                #   Pico GPT: embeddings, transformer blocks, generation, resizing
 │   ├── transformer_block.py    #   causal self-attention, feed-forward, transformer block
-│   └── grammar.py              #   load a model, correct sentences, answer questions
+│   └── grammar.py              #   load a model, correct sentences (+ edit filter), answer questions
 ├── models/                     # the trained model (not in git, see below)
 │   ├── pico_big_grammar_small.pt
 │   └── pico_big_grammar_tokenizer.model
 ├── evaluation/
 │   ├── evaluate.py             #   benchmark a model and write a one-page HTML report
 │   ├── benchmark.py            #   score on BEA-2019 / CoNLL-2014 / JFLEG with ERRANT
+│   ├── m2.py                   #   read M2 correction files, detokenize sentences
 │   ├── test_set/               #   30 test sentences (qns.txt) + answer key (ans.txt)
 │   └── reports/                #   report.html + report.json, benchmarks/<model>.json
 ├── training/                   # everything used to train the model
@@ -65,6 +66,7 @@ Pico/
 │   ├── pretrain.py             #   pre-training on a GPU
 │   ├── make_synthetic.py       #   synthetic grammar pairs with common learner mistakes
 │   ├── extract_grammar_pairs.py#   correction pairs from the English Practical Grammar dataset
+│   ├── prepare_learner_data.py #   real learner essays (W&I+LOCNESS, FCE) as training pairs (stage 2)
 │   ├── finetune_grammar.py     #   grammar fine-tuning (correction pairs + Question/Answer conversations)
 │   ├── export_model.py         #   strip the optimizer state -> ~3x smaller file for inference
 │   └── train_small.py          #   small CPU-only model (for learning, v0.1-style)
@@ -73,6 +75,8 @@ Pico/
 ├── data/
 │   ├── train.jsonl             # 100k grammar pairs (not in git)
 │   ├── grammar_book.jsonl      # pairs extracted from the grammar dataset (not in git)
+│   ├── learner.jsonl           # stage-2 learner essay pairs (not in git)
+│   ├── benchmarks/             # BEA-2019 / FCE / CoNLL-2014 / JFLEG downloads (not in git)
 │   ├── corpus.txt, words_alpha.txt   # used by train_small.py / the tokenizer
 ├── assets/                     # logo, poster, v0.1.0 overview
 └── requirements.txt
@@ -96,6 +100,7 @@ from the Kaggle notebook's **Output** tab into `models/`.
 ```bash
 python correct.py "they was playing in park"     # correct one sentence
 python correct.py                                # interactive mode (empty line to quit)
+python correct.py --no-filter "..."              # raw model output, without the edit filter
 python ask.py "What is a noun?"                  # grammar question (experimental, see below)
 python ask.py                                    # interactive mode
 ```
@@ -115,14 +120,14 @@ Runs every sentence in `evaluation/test_set/qns.txt` through the model, compares
 parameters, tokens, latency, loss / perplexity, exact match, word errors before vs after and edit precision /
 recall / F0.5, with a per-sentence breakdown.
 
-| | v0.3.0 | v0.2.0 |
-|---|---|---|
-| Sentences fixed exactly | **18/30** | 11/30 |
-| Fixed, on the 19 sentences **not** in the training data | **9/19** | 8/19 |
-| Word errors removed | **51%** | 26% |
-| Edit precision / F0.5 | **0.76 / 0.72** | 0.69 / 0.57 |
-| Test loss on the answer key | **0.28** | 0.49 |
-| Median latency (laptop CPU) | ~0.5 s | ~0.5 s |
+| | v0.3.0 + edit filter | v0.3.0 raw | v0.2.0 |
+|---|---|---|---|
+| Sentences fixed exactly | **18/30** | 18/30 | 11/30 |
+| Fixed, on the 19 sentences **not** in the training data | **9/19** | 9/19 | 8/19 |
+| Word errors removed | **54%** | 51% | 26% |
+| Edit precision / F0.5 | **0.83 / 0.77** | 0.76 / 0.72 | 0.69 / 0.57 |
+| Test loss on the answer key | **0.28** | 0.28 | 0.49 |
+| Median latency (laptop CPU) | ~0.4–0.5 s | ~0.4–0.5 s | ~0.5 s |
 
 11 of the 30 test sentences (or close variants) also appear in the English Practical Grammar dataset. They are
 marked in the report (`data/grammar_book_test_overlap.json`), and the score on the 19 unseen sentences is the
@@ -141,18 +146,37 @@ python -m evaluation.benchmark --sets bea --limit 300           # quick check
 python -m evaluation.benchmark --model models/other_model.pt    # another model
 ```
 
-| Test set | Sentences | Text | Precision | Recall | F0.5 |
-|---|---|---|---|---|---|
-| BEA-2019 dev (W&I+LOCNESS) | 4,384 | essays by learners of all levels + native students | 0.11 | 0.07 | **0.10** |
-| CoNLL-2014 test | 1,312 | essays by university students (2 references) | 0.11 | 0.07 | **0.10** |
-| JFLEG test | 747 | learner sentences, fluency rewrites (4 references) | 0.31 | 0.17 | **0.26** |
+| Test set | Sentences | Text | Precision | Recall | F0.5 | F0.5 raw |
+|---|---|---|---|---|---|---|
+| BEA-2019 dev (W&I+LOCNESS) | 4,384 | essays by learners of all levels + native students | 0.25 | 0.06 | **0.16** | 0.10 |
+| CoNLL-2014 test | 1,312 | essays by university students (2 references) | 0.34 | 0.07 | **0.19** | 0.10 |
+| JFLEG test | 747 | learner sentences, fluency rewrites (4 references) | 0.54 | 0.15 | **0.36** | 0.26 |
+
+*F0.5 raw* is the model output without the [edit filter](#edit-filter) (`--no-filter`).
 
 These numbers are much lower than the 30-sentence test, and they are the honest ones: real learner essays have
 long sentences, several errors each and many error types that the synthetic training data does not cover. The
-main problem is **precision** – on BEA, 4,363 of the model's 4,883 edits are wrong, mostly rewrites of words that
-were correct (1,704 wrong edits of type OTHER). The strongest error types are capitalization (ORTH, F0.5 0.37 on
-BEA, 0.74 on JFLEG), determiners and punctuation; spelling and verb choice are barely fixed. For scale, large
-published systems score roughly 0.6–0.75 F0.5 on these sets.
+main problem was **precision** – without the filter, 4,363 of the model's 4,883 edits on BEA are wrong, mostly
+rewrites of words that were already correct, and it changes 41% of the sentences that need no correction (its
+training data had no correct sentences). The strongest error types are capitalization (ORTH, F0.5 0.39 on BEA,
+0.75 on JFLEG), determiners, punctuation and verb tense; spelling and verb choice are barely fixed. For scale,
+large published systems score roughly 0.6–0.75 F0.5 on these sets.
+
+### Edit filter
+
+`correct.py` (and the benchmark) splits the model's correction into word-level edits and keeps an edit only if
+
+1. it is not a **rewrite**: it changes only punctuation / capitalization, small function words (*a → an*,
+   *in → on*, *+ the*) and the form or spelling of the other words (*go → went*, *am knowing → know*,
+   *recieve → receive*). Rewrites into an unrelated word (*Psychology → the parts*) were half of the model's
+   edits on BEA dev and only 2% of them were right;
+2. the model does not clearly reject it: log P(sentence with only this edit) − log P(sentence unchanged)
+   must be above −2.
+
+It was tuned on the even sentences of BEA-2019 dev and checked on the odd ones (F0.5 0.10 → 0.17), CoNLL-2014
+(0.10 → 0.19) and JFLEG (0.26 → 0.36). The model's own confidence alone helped less (0.15 / 0.16 / 0.34): it is
+confident about many of its wrong rewrites. The filter only removes edits, so it cannot fix more errors than the
+model finds – that needs better training (see stage 2 under [Training](#training)).
 
 How it works and what to know:
 
@@ -162,7 +186,8 @@ How it works and what to know:
 - The sentences are word-tokenized (`I do n't know .`); they are detokenized for the model, and in the output
   every word the model left unchanged keeps the original tokens, so an unchanged sentence never gets fake edits.
 - Corrections are greedy-decoded like `correct.py` (same output, checked), but with a KV cache and batching:
-  ~0.3 s per sentence instead of ~2 s. They are cached, so re-scoring is instant (`--rerun` regenerates them).
+  ~0.3 s per sentence instead of ~2 s. The raw corrections are cached, so re-scoring only re-runs the edit
+  filter (~5 min for all sets; `--no-filter` scores the raw output, `--rerun` regenerates the corrections).
 - The BEA-2019 *test* answers are hidden, so the dev set is used. CoNLL-2014 papers usually report the M2 scorer
   and JFLEG papers GLEU; ERRANT numbers are close but not identical to those.
 
@@ -200,6 +225,27 @@ python -m training.finetune_grammar --data data/train.jsonl data/synthetic.jsonl
     --block-size 1024 --steps 20000 --batch-size 32  # -> models/pico_big_grammar.pt
 python -m training.export_model models/pico_big_grammar.pt models/pico_big_grammar_small.pt
 ```
+
+**3. Stage 2: real learner essays** (new, not trained yet) – the benchmarks showed that the model rewrites far
+too much, because every training input above contains a mistake. Stage 2 continues from the stage-1 model with a
+lower learning rate on human-corrected learner writing from the BEA-2019 shared task:
+
+- `prepare_learner_data.py` – W&I+LOCNESS train + FCE train/dev: **61,876 sentence pairs, 36% already correct**
+  (input = output), repeated x2. The benchmark test sets (BEA-2019 dev, FCE test, CoNLL-2014, JFLEG) are not used.
+- the grammar-dataset correction pairs (x5) and conversations (x2), so stage 1 is not forgotten
+
+```bash
+python -m training.prepare_learner_data               # -> data/learner.jsonl (non-commercial licence, git-ignored)
+python -m training.finetune_grammar --data "data/learner.jsonl*2" "data/grammar_book.jsonl*5" \
+    $(for f in data/english-practical-grammar/data/*.jsonl; do echo "$f*2"; done) \
+    --base models/pico_big_grammar_small.pt --out models/pico_big_grammar_learner.pt \
+    --block-size 1024 --steps 4000 --batch-size 32 --lr 1e-4
+python -m training.export_model models/pico_big_grammar_learner.pt models/pico_big_grammar_small.pt
+python -m evaluation.benchmark --rerun                # compare with the scores above
+```
+
+This needs a GPU (~45 s per step on a laptop CPU). In the Kaggle notebook it is section **6b**: it runs right
+after stage 1, or alone (~30 min) when a previous version with `pico_big_grammar.pt` is added as input.
 
 `python -m training.train_small` trains a small 3.3M-parameter model on TinyStories on a CPU only, for learning
 how pre-training works.
