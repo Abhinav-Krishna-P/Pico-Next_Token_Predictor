@@ -26,6 +26,7 @@ python ask.py "What is a noun?"                                 ->  A noun is a 
 | Pre-training | **776M tokens** (TinyStories + FineWeb-Edu), 600M trained · 4,577 steps · val loss 2.50 · Kaggle 2× T4, ~4 h |
 | Fine-tuning | 100k grammar pairs + 388k synthetic learner mistakes + the [English Practical Grammar dataset](https://github.com/Abhinav-Krishna-P/English-practical-grammer-Dataset) (4,233 conversations + 653 extracted pairs) · 20,000 steps · val loss 0.92 |
 | Benchmark (30 sentences) | **18/30** fixed exactly · **51%** of word errors removed · precision **0.76** · F0.5 **0.72** · test loss **0.28** |
+| Standard benchmarks (ERRANT F0.5) | BEA-2019 dev **0.10** · CoNLL-2014 **0.10** · JFLEG **0.26** – real learner essays, see [Evaluate](#evaluate) |
 | Speed | ~0.5 s per sentence on a laptop CPU |
 
 ### Versions
@@ -56,8 +57,9 @@ Pico/
 │   └── pico_big_grammar_tokenizer.model
 ├── evaluation/
 │   ├── evaluate.py             #   benchmark a model and write a one-page HTML report
+│   ├── benchmark.py            #   score on BEA-2019 / CoNLL-2014 / JFLEG with ERRANT
 │   ├── test_set/               #   30 test sentences (qns.txt) + answer key (ans.txt)
-│   └── reports/                #   report.html + report.json
+│   └── reports/                #   report.html + report.json, benchmarks/<model>.json
 ├── training/                   # everything used to train the model
 │   ├── prepare_data.py         #   download + tokenize the pre-training data (data/big/)
 │   ├── pretrain.py             #   pre-training on a GPU
@@ -125,6 +127,44 @@ recall / F0.5, with a per-sentence breakdown.
 11 of the 30 test sentences (or close variants) also appear in the English Practical Grammar dataset. They are
 marked in the report (`data/grammar_book_test_overlap.json`), and the score on the 19 unseen sentences is the
 fair comparison.
+
+### Standard benchmarks
+
+30 sentences are too few to measure progress (one sentence = 3 points), so `evaluation/benchmark.py` also scores
+the model on the public grammar-correction test sets that research papers report, with
+[ERRANT](https://github.com/chrisjbryant/errant) (span-based correction precision / recall / F0.5):
+
+```bash
+pip install errant && python -m spacy download en_core_web_sm   # once
+python -m evaluation.benchmark                                  # all three sets, ~35 min on a laptop CPU
+python -m evaluation.benchmark --sets bea --limit 300           # quick check
+python -m evaluation.benchmark --model models/other_model.pt    # another model
+```
+
+| Test set | Sentences | Text | Precision | Recall | F0.5 |
+|---|---|---|---|---|---|
+| BEA-2019 dev (W&I+LOCNESS) | 4,384 | essays by learners of all levels + native students | 0.11 | 0.07 | **0.10** |
+| CoNLL-2014 test | 1,312 | essays by university students (2 references) | 0.11 | 0.07 | **0.10** |
+| JFLEG test | 747 | learner sentences, fluency rewrites (4 references) | 0.31 | 0.17 | **0.26** |
+
+These numbers are much lower than the 30-sentence test, and they are the honest ones: real learner essays have
+long sentences, several errors each and many error types that the synthetic training data does not cover. The
+main problem is **precision** – on BEA, 4,363 of the model's 4,883 edits are wrong, mostly rewrites of words that
+were correct (1,704 wrong edits of type OTHER). The strongest error types are capitalization (ORTH, F0.5 0.37 on
+BEA, 0.74 on JFLEG), determiners and punctuation; spelling and verb choice are barely fixed. For scale, large
+published systems score roughly 0.6–0.75 F0.5 on these sets.
+
+How it works and what to know:
+
+- The test sets are downloaded once into `data/benchmarks/`. They are licensed for **non-commercial research only**,
+  so they – and the model's corrections of them – are git-ignored; only the scores
+  (`evaluation/reports/benchmarks/<model>.json`, with a per-error-type breakdown) are committed.
+- The sentences are word-tokenized (`I do n't know .`); they are detokenized for the model, and in the output
+  every word the model left unchanged keeps the original tokens, so an unchanged sentence never gets fake edits.
+- Corrections are greedy-decoded like `correct.py` (same output, checked), but with a KV cache and batching:
+  ~0.3 s per sentence instead of ~2 s. They are cached, so re-scoring is instant (`--rerun` regenerates them).
+- The BEA-2019 *test* answers are hidden, so the dev set is used. CoNLL-2014 papers usually report the M2 scorer
+  and JFLEG papers GLEU; ERRANT numbers are close but not identical to those.
 
 ## Training
 

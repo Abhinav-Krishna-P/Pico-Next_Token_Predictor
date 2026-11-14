@@ -14,6 +14,12 @@ models/*.pt
 models/*.model
 *.tmp
 
+# grammar-correction benchmarks (BEA-2019, CoNLL-2014, JFLEG): non-commercial research licences, never committed.
+# Only the score summaries (evaluation/reports/benchmarks/*.json) are tracked, not the sentences or corrections.
+data/benchmarks/
+evaluation/reports/benchmarks/*.txt
+evaluation/reports/benchmarks/*.m2
+
 # English Practical Grammar dataset (cloned) and files generated from it
 data/english-practical-grammar/
 data/grammar_book.jsonl
